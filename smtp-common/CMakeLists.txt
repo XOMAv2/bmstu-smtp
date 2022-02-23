@@ -3,4 +3,4 @@ project(smtp_common C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_library(smtp_common helpers.c helpers.h)
+add_library(smtp_common helpers.c helpers.h log.c log.h)
