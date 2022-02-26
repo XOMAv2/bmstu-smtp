@@ -1,0 +1,76 @@
+autogen definitions fsm;
+
+method = call;
+type   = reentrant;
+
+cookie = "conn_state_t *conn_state";
+cookie = "void *data";
+
+prefix = smtp_server_fsm;
+
+state = ready, helo, mail, rcpt, data, send, quit, timeout;
+
+event = recv_helo,
+        recv_ehlo,
+        recv_mail,
+        recv_rcpt,
+        recv_rset,
+        recv_data,
+        recv_data_int,
+        recv_quit,
+        recv_noop,
+        recv_vrfy,
+        recv_unknown,
+        conn_est,
+        conn_timeout,
+        conn_lost,
+        msg_saved,
+        term_seq;
+
+
+transition = { tst = init;          tev = conn_est;              next = ready;           ttype = accepted; };
+
+transition = { tst = ready;         tev = recv_helo;             next = helo;            ttype = helo; },
+             { tst = ready;         tev = recv_ehlo;             next = helo;            ttype = ehlo; },
+             { tst = ready;         tev = recv_vrfy;             next = ready;           ttype = vrfy; },
+             { tst = ready;         tev = recv_rset;             next = ready;           ttype = rset; },
+             { tst = ready;         tev = recv_quit;             next = quit;            ttype = quit; },
+             { tst = ready;         tev = conn_timeout;          next = timeout;         ttype = timeout; },
+             { tst = ready;         tev = conn_lost;             next = done;            ttype = close; };
+
+transition = { tst = helo;          tev = recv_helo;             next = helo;            ttype = helo; },
+             { tst = helo;          tev = recv_ehlo;             next = helo;            ttype = ehlo; },
+             { tst = helo;          tev = recv_mail;             next = mail;            ttype = mail; },
+             { tst = helo;          tev = recv_vrfy;             next = helo;            ttype = vrfy; },
+             { tst = helo;          tev = recv_rset;             next = helo;            ttype = rset; },
+             { tst = helo;          tev = recv_quit;             next = quit;            ttype = quit; },
+             { tst = helo;          tev = conn_timeout;          next = timeout;         ttype = timeout; },
+             { tst = helo;          tev = conn_lost;             next = done;            ttype = close; };
+
+transition = { tst = mail;          tev = recv_helo;             next = helo;            ttype = helo; },
+             { tst = mail;          tev = recv_ehlo;             next = helo;            ttype = ehlo; },
+             { tst = mail;          tev = recv_rcpt;             next = rcpt;            ttype = rcpt; },
+             { tst = mail;          tev = recv_vrfy;             next = mail;            ttype = vrfy; },
+             { tst = mail;          tev = recv_rset;             next = helo;            ttype = rset; },
+             { tst = mail;          tev = recv_quit;             next = quit;            ttype = quit; },
+             { tst = mail;          tev = conn_timeout;          next = timeout;         ttype = timeout; },
+             { tst = mail;          tev = conn_lost;             next = done;            ttype = close; };
+
+transition = { tst = rcpt;          tev = recv_helo;             next = helo;            ttype = helo; },
+             { tst = rcpt;          tev = recv_ehlo;             next = helo;            ttype = ehlo; },
+             { tst = rcpt;          tev = recv_rcpt;             next = rcpt;            ttype = rcpt; },
+             { tst = rcpt;          tev = recv_data;             next = data;            ttype = data; },
+             { tst = rcpt;          tev = recv_vrfy;             next = rcpt;            ttype = vrfy; },
+             { tst = rcpt;          tev = recv_rset;             next = helo;            ttype = rset; },
+             { tst = rcpt;          tev = recv_quit;             next = quit;            ttype = quit; },
+             { tst = rcpt;          tev = conn_timeout;          next = timeout;         ttype = timeout; },
+             { tst = rcpt;          tev = conn_lost;             next = done;            ttype = close; };
+
+transition = { tst = data;          tev = recv_data_int;         next = data;            ttype = data; },
+             { tst = data;          tev = term_seq;              next = helo;            ttype = mail_received; },
+             { tst = data;          tev = conn_timeout;          next = timeout;         ttype = timeout; },
+             { tst = data;          tev = conn_lost;             next = done;            ttype = close; };
+
+transition = { tst = quit;          tev = conn_lost;             next = done;            ttype = close; };
+
+transition = { tst = timeout;       tev = conn_lost;             next = done;            ttype = close; };
