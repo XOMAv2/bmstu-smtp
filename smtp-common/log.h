@@ -17,6 +17,8 @@
 #include <time.h>
 #include "helpers.h"
 
+#define LOG_MESSAGE_MAX_LENGTH 1024
+
 typedef struct queue_msg
 {
     // Тип сообщения. Должен принимать только положительные значения, используемые процессом-получателем для выбора
@@ -28,50 +30,26 @@ typedef struct queue_msg
 
 typedef enum log_level {
     ERROR,
-    INFO,
     WARN,
-    DEBUG
+    INFO,
+    DEBUG,
+    TRACE
 } log_level_te;
 
-extern log_level_te current_log_level;
-extern char fd_queue_path[];
-extern int queue_id;
+typedef struct {
+    const char *logger_name;
+    const char *logs_dir;
+    const char *fd_queue_path;
+    log_level_te current_log_level;
+    int queue_id;
+} logger_state_t;
 
-#define LOG(log_level, format_, ...) {                                        \
-    int total_size = 1024;                                                    \
-    char *prefix;                                                             \
-                                                                              \
-    if ((log_level) <= current_log_level) {                                   \
-        switch ((log_level)) {                                                \
-            case INFO:                                                        \
-                prefix = "INFO";                                              \
-                break;                                                        \
-            case WARN:                                                        \
-                prefix = "WARN";                                              \
-                break;                                                        \
-            case ERROR:                                                       \
-                prefix = "ERROR";                                             \
-                break;                                                        \
-            case DEBUG:                                                       \
-                prefix = "DEBUG";                                             \
-                break;                                                        \
-            default:                                                          \
-                abort();                                                      \
-        };                                                                    \
-                                                                              \
-        char *message = malloc(sizeof(char) * total_size);                    \
-        snprintf(message, total_size, "%s "format_"\n", prefix, __VA_ARGS__); \
-        send_log_message(message);                                            \
-        free(message);                                                        \
-    }                                                                         \
-}
+int init_logger(const logger_state_t* state);
+int start_logger(key_t queue_key);
 
-#define log_i(format, ...) LOG(INFO, format, __VA_ARGS__);
-#define log_d(format, ...) LOG(DEBUG, format, __VA_ARGS__);
-#define log_w(format, ...) LOG(WARN, format, __VA_ARGS__);
-#define log_e(format, ...) LOG(ERROR, format, __VA_ARGS__);
-int start_logger(char *logs_dir);
-int save_log(char *logs_dir, char *message);
-int send_log_message(char *message);
+int log_info(const char *format, ...);
+int log_debug(const char *format, ...);
+int log_warn(const char *format, ...);
+int log_error(const char *format, ...);
 
 #endif //SMTP_CLIENT_LOG_H

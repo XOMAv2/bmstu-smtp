@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <regex.h>
+#include <pthread.h>
 
 #include "config.h"
 #include "error.h"
@@ -61,6 +62,10 @@ static int match_regex(regex_t *r, const char *to_match) {
     return 0;
 }
 
+void *logger(void *data) {
+
+}
+
 int main(int argc, char *argv[]) {
     server_config_t server_config;
 
@@ -74,6 +79,10 @@ int main(int argc, char *argv[]) {
     printf("proc: %d\n", server_config.proc_count);
     printf("domain: %s\n", server_config.domain);
     printf("maildir: %s\n", server_config.maildir);*/
+
+    pthread_t log_thread;
+
+    pthread_create(log_thread, NULL, logger, NULL);
 
     regex_t r;
     const char *regex_text = "^([Ff][Rr][Oo][Mm]:)?(<.+>)?( )?(.+)?(\r\n)$";

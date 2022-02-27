@@ -1,17 +1,24 @@
 #include <stdio.h>
 #include "../smtp-common/log.h"
 
-log_level_te current_log_level = DEBUG;
-char fd_queue_path[] = "/tmp";
-int queue_id = 100;
+int main(void) {
 
-int main(int argc, char **argv) {
-    (void)argc; // TODO: delete (here bacause of compiler warning).
+    // Вот это нужно загрузить из конфига
+    logger_state_t logger_stte = {
+            .logger_name = "CLIENT",
+            .logs_dir = "./log",
+            .fd_queue_path = "./log",
+            .queue_id = 100,
+            .current_log_level = DEBUG
+    };
+
+    key_t queue_key = init_logger(&logger_stte);
 
     if (fork() == 0) { // Child process.
-        start_logger(argv[1]);
+        start_logger(queue_key);
     } else {
-        log_i("%s", "Success!");
+        log_info("%s", "Success!");
+        log_debug("%s", "Success!");
     }
 
     return 0;

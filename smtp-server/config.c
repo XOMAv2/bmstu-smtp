@@ -19,7 +19,7 @@ err_code_t parse_server_config(server_config_t *server_config, const config_t *c
         return ERR_PARSE_CONFIG;
     }
 
-    printf("\nhost config loaded\n");
+    printf("\nhost address loaded\n");
 
     if (config_setting_lookup_int(server, CONFIG_PORT, &server_config->port) != CONFIG_TRUE) {
         return ERR_PARSE_CONFIG;
@@ -28,28 +28,19 @@ err_code_t parse_server_config(server_config_t *server_config, const config_t *c
         return ERR_PARSE_PORT;
     }
 
-    printf("\nport config loaded\n");
+    printf("\nport number loaded\n");
 
     if (config_setting_lookup_string(server, CONFIG_USER, &server_config->user) != CONFIG_TRUE) {
         return ERR_PARSE_CONFIG;
     }
 
-    printf("\nuser config loaded\n");
+    printf("\nuser name loaded\n");
 
     if (config_setting_lookup_string(server, CONFIG_GROUP, &server_config->group) != CONFIG_TRUE) {
         return ERR_PARSE_CONFIG;
     }
 
-    printf("\ngroup config loaded\n");
-
-    if (config_setting_lookup_int(server, CONFIG_PROC_COUNT, &server_config->proc_count) != CONFIG_TRUE) {
-        return ERR_PARSE_CONFIG;
-    }
-    if (server_config->proc_count < 0 || server_config->proc_count > 1024) {
-        return ERR_PARSE_PROC_NUM;
-    }
-
-    printf("\nproc config loaded\n");
+    printf("\ngroup name loaded\n");
 
     if (config_setting_lookup_int(server, CONFIG_BACKLOG, &server_config->backlog) != CONFIG_TRUE) {
         return ERR_PARSE_CONFIG;
@@ -58,19 +49,37 @@ err_code_t parse_server_config(server_config_t *server_config, const config_t *c
         return ERR_PARSE_BACKLOG;
     }
 
-    printf("\nbacklog config loaded\n");
+    printf("\nbacklog length loaded\n");
 
     if (config_setting_lookup_string(server, CONFIG_DOMAIN, &server_config->domain) != CONFIG_TRUE) {
         return ERR_PARSE_CONFIG;
     }
 
-    printf("\ndomain config loaded\n");
+    printf("\ndomain name loaded\n");
 
     if (config_setting_lookup_string(server, CONFIG_MAILDIR, &server_config->maildir) != CONFIG_TRUE) {
         return ERR_PARSE_CONFIG;
     }
 
-    printf("\nmaildir config loaded\n");
+    printf("\nmaildir path loaded\n");
+
+    if (config_setting_lookup_string(server, CONFIG_QUEUE_PATH, &server_config->queue_path) != CONFIG_TRUE) {
+        return ERR_PARSE_CONFIG;
+    }
+
+    printf("\nlog queue path loaded\n");
+
+    if (config_setting_lookup_string(server, CONFIG_QUEUE_ID, &server_config->queue_id) != CONFIG_TRUE) {
+        return ERR_PARSE_CONFIG;
+    }
+
+    printf("\nlog queue id loaded\n");
+
+    if (config_setting_lookup_string(server, CONFIG_LOGDIR, &server_config->log_dir) != CONFIG_TRUE) {
+        return ERR_PARSE_CONFIG;
+    }
+
+    printf("\nlog_dir path loaded\n");
 
     return OP_SUCCESS;
 }

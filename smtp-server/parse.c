@@ -166,7 +166,7 @@ err_code_t parse_quit_message(char *restrict message, void **restrict data) {
     return OP_SUCCESS;
 }
 
-static const err_code_t (*parsers[CMD_NUM])(char *restrict, void **restrict) = {
+static err_code_t (* const parsers[CMD_NUM])(char *restrict, void **restrict) = {
         parse_helo_message, parse_ehlo_message, parse_mail_message,
         parse_rcpt_message, parse_data_message, parse_rset_message,
         parse_noop_message, parse_vrfy_message, parse_quit_message
