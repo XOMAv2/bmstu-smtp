@@ -13,7 +13,7 @@
 #include "defines.h"
 #include "destruction.h"
 
-void print_to_buf(char *restrict buf, const char *prefix, const char *format, const va_list* va_args) {
+void print_to_buf(char *restrict buf, const char *prefix, const char *format, va_list* va_args) {
     const char *new_prefix = (prefix == NULL ? ERR_NO_ERR_MESSAGE_MESSAGE : prefix);
 
     if (format == NULL) {
@@ -26,7 +26,7 @@ void print_to_buf(char *restrict buf, const char *prefix, const char *format, co
     }
 }
 
-void log_error(err_code_t code, const char *format, const va_list* va_args) {
+void log_error(err_code_t code, const char *format, va_list* va_args) {
     char buf[ERROR_MESSAGE_MAX_LENGTH];
 
     switch (code) {
@@ -41,6 +41,12 @@ void log_error(err_code_t code, const char *format, const va_list* va_args) {
             break;
         case ERR_NULL_POINTER:
             print_to_buf(buf, ERR_NULL_POINTER_MESSAGE, format, va_args);
+            break;
+        case ERR_CREATE_THREAD:
+            print_to_buf(buf, ERR_CREATE_THREAD_MESSAGE, format, va_args);
+            break;
+        case ERR_INIT_MUTEX:
+            print_to_buf(buf, ERR_INIT_MUTEX_MESSAGE, format, va_args);
             break;
         case ERR_PARSE_CONFIG:
             print_to_buf(buf, ERR_PARSE_CONFIG_MESSAGE, format, va_args);
