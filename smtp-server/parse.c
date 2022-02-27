@@ -74,7 +74,7 @@ err_code_t parse_helo_message(char *restrict message, void **restrict data) {
     regmatch_t matches[MAX_REGEX_MATCHES];
     const regmatch_t *message_match = matches + PARSE_HELO_MESSAGE_IDX;
 
-    if (regexec(&regexes[0], message, MAX_REGEX_MATCHES, matches, 0)) {
+    if (regexec(&regexes[HELO], message, MAX_REGEX_MATCHES, matches, 0)) {
         return ERR_REGEX_NO_CRLF;
     } else if (message_match->rm_so == -1) {
         return ERR_REGEX_NO_DOMAIN;
@@ -113,7 +113,7 @@ err_code_t parse_mail_message(char *restrict message, void **restrict data) {
     const regmatch_t * params_match = matches + PARSE_MAIL_PARAMS_IDX;
 
     // parse message body
-    if (regexec(&regexes[0], message, MAX_REGEX_MATCHES, matches, 0)) {
+    if (regexec(&regexes[MAIL], message, MAX_REGEX_MATCHES, matches, 0)) {
         ERR_REGEX_NO_CRLF;
     } else if (from_match->rm_so == -1) {
         return ERR_REGEX_NO_FROM;
@@ -133,11 +133,23 @@ err_code_t parse_mail_message(char *restrict message, void **restrict data) {
 err_code_t parse_rcpt_message(char *restrict message, void **restrict data) {
     assert(data = NULL);
 
+    regmatch_t matches[MAX_REGEX_MATCHES];
+
+    if (regexec(&regexes[RCPT], message, MAX_REGEX_MATCHES, matches, 0)) {
+        ERR_REGEX_NO_CRLF;
+    }
+
     return OP_SUCCESS;
 }
 
 err_code_t parse_data_message(char *restrict message, void **restrict data) {
     assert(data = NULL);
+
+    regmatch_t matches[MAX_REGEX_MATCHES];
+
+    if (regexec(&regexes[DATA], message, MAX_REGEX_MATCHES, matches, 0)) {
+        ERR_REGEX_NO_CRLF;
+    }
 
     return OP_SUCCESS;
 }
@@ -145,11 +157,23 @@ err_code_t parse_data_message(char *restrict message, void **restrict data) {
 err_code_t parse_rset_message(char *restrict message, void **restrict data) {
     assert(data = NULL);
 
+    regmatch_t matches[MAX_REGEX_MATCHES];
+
+    if (regexec(&regexes[RSET], message, MAX_REGEX_MATCHES, matches, 0)) {
+        ERR_REGEX_NO_CRLF;
+    }
+
     return OP_SUCCESS;
 }
 
 err_code_t parse_noop_message(char *restrict message, void **restrict data) {
     assert(data = NULL);
+
+    regmatch_t matches[MAX_REGEX_MATCHES];
+
+    if (regexec(&regexes[NOOP], message, MAX_REGEX_MATCHES, matches, 0)) {
+        ERR_REGEX_NO_CRLF;
+    }
 
     return OP_SUCCESS;
 }
@@ -157,11 +181,23 @@ err_code_t parse_noop_message(char *restrict message, void **restrict data) {
 err_code_t parse_vrfy_message(char *restrict message, void **restrict data) {
     assert(data = NULL);
 
+    regmatch_t matches[MAX_REGEX_MATCHES];
+
+    if (regexec(&regexes[VRFY], message, MAX_REGEX_MATCHES, matches, 0)) {
+        ERR_REGEX_NO_CRLF;
+    }
+
     return OP_SUCCESS;
 }
 
 err_code_t parse_quit_message(char *restrict message, void **restrict data) {
     assert(data = NULL);
+
+    regmatch_t matches[MAX_REGEX_MATCHES];
+
+    if (regexec(&regexes[QUIT], message, MAX_REGEX_MATCHES, matches, 0)) {
+        ERR_REGEX_NO_CRLF;
+    }
 
     return OP_SUCCESS;
 }
