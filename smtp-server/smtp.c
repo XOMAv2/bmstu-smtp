@@ -40,8 +40,12 @@ err_code_t serve_conn_event(pollfd_t pollfd, conn_state_t *restrict conn_state, 
         conn_state->fsm_state = smtp_server_fsm_step(conn_state->fsm_state, command.event, conn_state, command.data);
 
     } else if (pollfd.revents & POLLHUP) {
-        return smtp_server_fsm_step(conn_state->fsm_state, SMTP_SERVER_FSM_EV_CONN_LOST, conn_state, NULL);
-    } else if (pollfd.revents & POLLERR) {
+        conn_state->fsm_state = smtp_server_fsm_step(conn_state->fsm_state,
+                                                     SMTP_SERVER_FSM_EV_CONN_LOST,
+                                                     conn_state,
+                                                     NULL);
+        return OP_SUCCESS;
+    } else {
         snprintf(err_msg_buf, ERROR_MESSAGE_MAX_LENGTH, "socket_fd=%d", pollfd.fd);
         return ERR_SOCKET_POLL_POLLERR;
     }
