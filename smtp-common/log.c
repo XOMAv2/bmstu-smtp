@@ -9,17 +9,16 @@ static logger_state_t logger_state;
 int save_log(const char *logs_dir, const char *message);
 int log_message(log_level_te log_level, const char *format, va_list va_args);
 
-// При передаче состояния логгера в виде структуры нужно, чтобы оно было инициализировано как в родителе, так и в
-// потомке, так как state используется и там и там, поэтому схема такая:
-// init_logger (в parent) -> fork (в parent) -> start_logger (в child) -> log (в parent)
-// Для логера, работающего в отдельном потоке, раздельная инициализация не требуетя, так как у всех
-// потоков одно общее адресное пространство, и все они ссылаются на один и тот же state
-key_t init_logger(const logger_state_t* state) {
-    if (state == NULL || state->fd_queue_path == NULL || state->logs_dir == NULL || state->logger_name == NULL) {
-        return -1;
-    }
+/**
+ * При передаче состояния логгера в виде структуры нужно, чтобы оно было инициализировано как в родителе, так и в
+ * потомке, так как state используется и там и там, поэтому схема такая:
+ * init_logger (в parent) -> fork (в parent) -> start_logger (в child) -> log (в parent)
+ * Для логера, работающего в отдельном потоке, раздельная инициализация не требуетя, так как у всех
+ * потоков одно общее адресное пространство, и все они ссылаются на один и тот же state
+ */
+key_t init_logger(logger_state_t state) {
+    logger_state = state;
 
-    logger_state = *state;
     if (access(logger_state.fd_queue_path, F_OK) < 0) {
         printf("Queue path doesn't exist: <%s>.\n", logger_state.fd_queue_path);
         return -1;
@@ -79,6 +78,14 @@ int log_error(const char *format, ...) {
     return rc;
 }
 
+int log_trace(const char *format, ...) {
+    va_list va_args;
+    va_start(va_args, format);
+    int rc = log_message(TRACE, format, va_args);
+    va_end(va_args);
+    return rc;
+}
+
 int save_log(const char *logs_dir, const char *message) {
     size_t message_length = strlen(message);
 
@@ -90,6 +97,12 @@ int save_log(const char *logs_dir, const char *message) {
     struct tm *timenow = gmtime(&now);
 
     char *log_path = malloc(strlen(logs_dir) + 50);
+
+    if (log_path == NULL) {
+        printf("Can't allocate memory for log_path char array.\n");
+        exit(-1);
+    }
+
     strcpy(log_path, logs_dir);
     ensure_trailing_slash(log_path);
     char filename[40];
@@ -107,6 +120,12 @@ int save_log(const char *logs_dir, const char *message) {
     char timeString[12];
     strftime(timeString, sizeof(timeString), "%H:%M:%S", timenow);
     char *full_log_msg = malloc(strlen(timeString) + 2 + message_length);
+
+    if (full_log_msg == NULL) {
+        printf("Can't allocate memory for full_log_msg char array.\n");
+        exit(-1);
+    }
+
     strcpy(full_log_msg, timeString);
     strcat(full_log_msg, " ");
     strcat(full_log_msg, message);
@@ -135,41 +154,38 @@ int send_log_message(const char *message) {
     return 0;
 }
 
-// Чтобы скрыть state логгера, от макросов придется избавиться, так как они объявляются в хедере
-// и используют глобальные значения state, т.е. state должен быть виден в хедере и так его вообще не скроешь.
-// Проблема с передачей vargs решается использованием va_list.
+/**
+ * Чтобы скрыть state логгера, от макросов придется избавиться, так как они объявляются в хедере
+ * и используют глобальные значения state, т.е. state должен быть виден в хедере и так его вообще не скроешь.
+ * Проблема с передачей vargs решается использованием va_list.
+ */
 int log_message(log_level_te log_level, const char *format, va_list va_args) {
-    if ((log_level) <= logger_state.current_log_level) {
-        char *message = malloc(sizeof(char) * LOG_MESSAGE_MAX_LENGTH);
-        if (message == NULL) {
-            return -1;
-        }
+    if (log_level <= logger_state.current_log_level) {
+        char message[QUEUE_MESSAGE_MAX_LENGTH];
 
-        switch ((log_level)) {
+        switch (log_level) {
             case ERROR:
-                snprintf(message, LOG_MESSAGE_MAX_LENGTH, "%s ERROR ", logger_state.logger_name);
+                snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s ERROR ", logger_state.logger_name);
                 break;
             case WARN:
-                snprintf(message, LOG_MESSAGE_MAX_LENGTH, "%s WARN ", logger_state.logger_name);
+                snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s WARN ", logger_state.logger_name);
                 break;
             case INFO:
-                snprintf(message, LOG_MESSAGE_MAX_LENGTH, "%s INFO ", logger_state.logger_name);
+                snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s INFO ", logger_state.logger_name);
                 break;
             case DEBUG:
-                snprintf(message, LOG_MESSAGE_MAX_LENGTH, "%s DEBUG ", logger_state.logger_name);
+                snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s DEBUG ", logger_state.logger_name);
                 break;
             case TRACE:
-                snprintf(message, LOG_MESSAGE_MAX_LENGTH, "%s TRACE ", logger_state.logger_name);
+                snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s TRACE ", logger_state.logger_name);
                 break;
             default:
-                free(message);
                 abort();
         }
 
         size_t prefix_len = strlen(message);
-        vsnprintf(message + prefix_len, LOG_MESSAGE_MAX_LENGTH - prefix_len, format, va_args);
+        vsnprintf(message + prefix_len, QUEUE_MESSAGE_MAX_LENGTH - prefix_len, format, va_args);
         send_log_message(message);
-        free(message);
     }
 
     return 0;
