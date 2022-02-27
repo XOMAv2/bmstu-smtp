@@ -3,6 +3,7 @@
 //
 
 #include "log.h"
+#include "errno.h"
 
 static logger_state_t logger_state;
 
@@ -29,15 +30,26 @@ key_t init_logger(logger_state_t state) {
 
     printf("Log path: <%s>.\n", logger_state.logs_dir);
 
-    return ftok(logger_state.fd_queue_path, logger_state.queue_id);
+    return (logger_state.ipc_key = ftok(logger_state.fd_queue_path, logger_state.queue_id));
 }
 
-int start_logger(key_t queue_key) {
-    int log_queue_id = msgget(queue_key, 0666);
+int start_logger(void) {
+    int log_queue_id = msgget(logger_state.ipc_key, 0666);
+
+    // Здесь выставляется новый максимальный размер очереди в 16 Кб, но это не срабатывает,
+    // потому что msgctl всегда завершается сообщением: msgctl failed: Operation not permitted.
+    // Согласно документации, изменять размер может только процесс-владелец очереди, тут msgclt
+    // вызывается сразу после создания очереди в msgget, почему нет доступа - пока не выяснил.
+    struct msqid_ds qstatus = { .msg_qbytes = MAX_QUEUE_SIZE };
+    if(msgctl(log_queue_id, IPC_SET, &qstatus) < 0){
+        perror("msgctl failed");
+    }
+
     queue_msg_t cur_msg;
 
     while (true) {
         if (msgrcv(log_queue_id, &cur_msg, sizeof(cur_msg), 1, MSG_NOERROR) != -1) {
+            printf("message received: %s\n", cur_msg.mtext);
             if (save_log(logger_state.logs_dir, cur_msg.mtext) < 0) {
                 printf("Error in save_log function call.\n");
                 return -1;
@@ -144,14 +156,33 @@ int send_log_message(const char *message) {
         return -1;
     }
 
-    key_t key = ftok(logger_state.fd_queue_path, logger_state.queue_id);
-    int log_queue_id = msgget(key, 0666 | IPC_CREAT);
+    int log_queue_id = msgget(logger_state.ipc_key, 0666 | IPC_CREAT);
+
+    /*struct msqid_ds qstatus;
+    if(msgctl(log_queue_id, IPC_STAT, &qstatus) < 0){
+        perror("msgctl failed");
+        exit(1);
+    }
+
+    printf("Current number of bytes on queue %ld\n",qstatus.msg_cbytes);
+    printf("Maximum number of bytes allowed on the queue %ld\n",qstatus.msg_qbytes);*/
+
     queue_msg_t new_msg;
     new_msg.mtype = 1;
     strcpy(new_msg.mtext, message);
-    msgsnd(log_queue_id, &new_msg, sizeof(new_msg), IPC_NOWAIT);
 
-    return 0;
+    // Даже при стандартном размере очереди в 2 Кб данный примитывный механизм ретраев
+    // позволяет корректно отсылать сколько нужно сообщений подряд с небольшой задержкой,
+    // пока msgctl не работает, это решает проблему с отправкой в неблокирующем вызове.
+    int i = 0, rc = -1;
+    errno = EAGAIN;
+    for (; rc == -1 && errno == EAGAIN && i < MAX_SEND_RETRIES; i++) {
+        printf("retrying: retry %d\n", i);
+        rc = msgsnd(log_queue_id, &new_msg, sizeof(new_msg), IPC_NOWAIT);
+        usleep(WAIT_BEFORE_RETRY);
+    }
+
+    return rc;
 }
 
 /**
@@ -185,7 +216,11 @@ int log_message(log_level_te log_level, const char *format, va_list va_args) {
 
         size_t prefix_len = strlen(message);
         vsnprintf(message + prefix_len, QUEUE_MESSAGE_MAX_LENGTH - prefix_len, format, va_args);
-        send_log_message(message);
+        if (send_log_message(message) < 0) {
+            printf("\ncan't send message %s\n", message);
+        } else {
+            printf("\nmessage %s sent\n", message);
+        }
     }
 
     return 0;

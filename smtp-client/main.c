@@ -9,16 +9,19 @@ int main(void) {
             .logs_dir = "./logs_dir",
             .fd_queue_path = "/tmp",
             .queue_id = 100,
-            .current_log_level = DEBUG
+            .current_log_level = TRACE
     };
 
-    key_t queue_key = init_logger(logger_stte);
+    init_logger(logger_stte);
 
     if (fork() == 0) { // Child process.
-        start_logger(queue_key);
+        start_logger();
     } else {
         log_info("Success!");
         log_debug("Success!");
+        log_warn("Success!");
+        log_error("Success!");
+        log_trace("Success!");
     }
 
     return 0;
