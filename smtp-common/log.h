@@ -19,11 +19,11 @@
 #include "queue_msg.h"
 
 typedef enum log_level {
-    ERROR = 0,
-    WARN  = 1,
-    INFO  = 2,
-    DEBUG = 3,
-    TRACE = 4
+    ERROR,
+    WARN,
+    INFO,
+    DEBUG,
+    TRACE
 } log_level_te;
 
 #define LOGGER_NAME_MAX_LENGTH 1024
