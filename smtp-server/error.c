@@ -26,7 +26,7 @@ void print_to_buf(char *restrict buf, const char *prefix, const char *format, va
     }
 }
 
-void log_error(err_code_t code, const char *format, va_list* va_args) {
+void log_error_raw(err_code_t code, const char *format, va_list* va_args) {
     char buf[ERROR_MESSAGE_MAX_LENGTH];
 
     switch (code) {
@@ -51,11 +51,11 @@ void log_error(err_code_t code, const char *format, va_list* va_args) {
         case ERR_PARSE_CONFIG:
             print_to_buf(buf, ERR_PARSE_CONFIG_MESSAGE, format, va_args);
             break;
-        case ERR_PARSE_PORT:
-            print_to_buf(buf, ERR_PARSE_PORT_MESSAGE, format, va_args);
+        case ERR_PARSE_SERVER_CONFIG:
+            print_to_buf(buf, ERR_PARSE_SERVER_CONFIG_MESSAGE, format, va_args);
             break;
-        case ERR_PARSE_PROC_NUM:
-            print_to_buf(buf, ERR_PARSE_PROC_NUM_MESSAGE, format, va_args);
+        case ERR_PARSE_LOGGER_CONFIG:
+            print_to_buf(buf, ERR_PARSE_LOGGER_CONFIG_MESSAGE, format, va_args);
             break;
         case ERR_PARSE_BACKLOG:
             print_to_buf(buf, ERR_PARSE_BACKLOG_MESSAGE, format, va_args);
@@ -113,20 +113,20 @@ void log_error(err_code_t code, const char *format, va_list* va_args) {
 }
 
 void log_error_code(err_code_t code) {
-    log_error(code, NULL, NULL);
+    log_error_raw(code, NULL, NULL);
 }
 
 void log_error_message(err_code_t code, const char *format, ...) {
     va_list va_args;
     va_start(va_args, format);
-    log_error(code, format, &va_args);
+    log_error_raw(code, format, &va_args);
     va_end(va_args);
 }
 
 void exit_with_error_message(err_code_t code, const char *format, ...) {
     va_list va_args;
     va_start(va_args, format);
-    log_error(code, format, &va_args);
+    log_error_raw(code, format, &va_args);
     va_end(va_args);
 
     exec_all_dtors();
@@ -137,12 +137,12 @@ void exit_with_error_code(err_code_t code) {
     exit_with_error_message(code, NULL);
 }
 
-void exit_with_config_error(const config_t *config, const char * filename) {
+void exit_with_config_error(err_code_t err_code, const config_t *config, const char * filename) {
     const char *text = config_error_text(config);
     int line = config_error_line(config);
     char buf[ERROR_MESSAGE_MAX_LENGTH];
 
     snprintf(buf, ERROR_MESSAGE_MAX_LENGTH, "%s:%d - %s", filename, line, text);
-    exit_with_error_message(ERR_PARSE_CONFIG, buf);
+    exit_with_error_message(err_code, buf);
 }
 

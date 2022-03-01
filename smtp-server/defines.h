@@ -11,7 +11,7 @@
 
 #define ERROR_MESSAGE_MAX_LENGTH 1000
 #define MAX_MESSAGE_LENGTH 1024
-#define DEFAULT_CONFIG_PATH "../server.cfg"
+#define DEFAULT_CONFIG_PATH "../../smtp-server/server.cfg"
 
 #define TRUE 1
 #define FALSE 0
