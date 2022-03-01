@@ -2,6 +2,8 @@
 // Created by Никита Иксарица on 21.02.2022.
 //
 
+#include <pthread.h>
+
 #include "log.h"
 #include "errno.h"
 
@@ -33,6 +35,18 @@ key_t init_logger(logger_state_t state) {
     return (logger_state.ipc_key = ftok(logger_state.fd_queue_path, logger_state.queue_id));
 }
 
+void sigterm_handler(int sig) {
+    if (sig == SIGTERM) {
+        save_log(logger_state.logs_dir, "SIGTERM RECEIVED, TERMINATE");
+        switch (logger_state.type) {
+            case THREAD:
+                pthread_exit(NULL);
+            case PROCESS:
+                exit(0);
+        }
+    }
+}
+
 int start_logger(void) {
     int log_queue_id = msgget(logger_state.ipc_key, 0666);
 
@@ -43,6 +57,13 @@ int start_logger(void) {
     struct msqid_ds qstatus = { .msg_qbytes = MAX_QUEUE_SIZE };
     if(msgctl(log_queue_id, IPC_SET, &qstatus) < 0){
         perror("msgctl failed");
+    }
+
+    // Чтобы можно было завершить логер, послав ему сигнал SIGTERM.
+    // Это будет работать как для логера в отдельном потоке (использовать pthread_kill),
+    // так и для логера в отдельном процессе (использовать kill).
+    if (signal(SIGTERM, sigterm_handler) == SIG_ERR) {
+        return -1;
     }
 
     queue_msg_t cur_msg;
