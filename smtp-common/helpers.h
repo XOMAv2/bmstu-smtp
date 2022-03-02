@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#define PATH_MAX_LENGTH 1024
+
 bool string_ends_with(const char *string, const char *suffix);
 void ensure_trailing_slash(char *string);
 

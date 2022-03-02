@@ -9,12 +9,12 @@
 
 static logger_state_t logger_state;
 
-int save_log(const char *logs_dir, const char *message);
+void save_log(const char *logs_dir, const char *message);
 int log_message(log_level_te log_level, const char *format, va_list va_args);
 
 /**
- * При передаче состояния логгера в виде структуры нужно, чтобы оно было инициализировано как в родителе, так и в
- * потомке, так как state используется и там и там, поэтому схема такая:
+ * При передаче состояния логгера в виде структуры нужно, чтобы оно было инициализировано как в
+ * родителе, так и в потомке, так как state используется и там и там, поэтому схема такая:
  * init_logger (в parent) -> fork (в parent) -> start_logger (в child) -> log (в parent)
  * Для логера, работающего в отдельном потоке, раздельная инициализация не требуетя, так как у всех
  * потоков одно общее адресное пространство, и все они ссылаются на один и тот же state
@@ -24,10 +24,10 @@ key_t init_logger(logger_state_t state) {
 
     if (access(logger_state.fd_queue_path, F_OK) < 0) {
         printf("Queue path doesn't exist: <%s>.\n", logger_state.fd_queue_path);
-        return -1;
+        exit(-1);
     } else if (access(logger_state.logs_dir, F_OK) < 0) {
         printf("Logs directory doesn't exist: <%s>.\n", logger_state.logs_dir);
-        return -1;
+        exit(-1);
     }
 
     printf("Log path: <%s>.\n", logger_state.logs_dir);
@@ -38,6 +38,7 @@ key_t init_logger(logger_state_t state) {
 void sigterm_handler(int sig) {
     if (sig == SIGTERM) {
         save_log(logger_state.logs_dir, "SIGTERM RECEIVED, TERMINATE");
+
         switch (logger_state.type) {
             case THREAD:
                 pthread_exit(NULL);
@@ -48,22 +49,26 @@ void sigterm_handler(int sig) {
 }
 
 int start_logger(void) {
-    int log_queue_id = msgget(logger_state.ipc_key, 0666);
+    int log_queue_id = msgget(logger_state.ipc_key, IPC_CREAT | 0666);
 
-    // Здесь выставляется новый максимальный размер очереди в 16 Кб, но это не срабатывает,
-    // потому что msgctl всегда завершается сообщением: msgctl failed: Operation not permitted.
-    // Согласно документации, изменять размер может только процесс-владелец очереди, тут msgclt
-    // вызывается сразу после создания очереди в msgget, почему нет доступа - пока не выяснил.
-    struct msqid_ds qstatus = { .msg_qbytes = MAX_QUEUE_SIZE };
-    if(msgctl(log_queue_id, IPC_SET, &qstatus) < 0){
-        perror("msgctl failed");
+    struct msqid_ds qstatus = {0};
+    msgctl(log_queue_id, IPC_STAT, &qstatus);
+    qstatus.msg_qbytes = MAX_QUEUE_SIZE; // Здесь выставляется новый максимальный размер очереди в 16 Кб.
+
+    // To raise the value of the msg_qbytes field, the effective user ID of the current process
+    // must have root user authority.
+    // https://www.ibm.com/docs/en/aix/7.2?topic=m-msgctl-subroutine
+    if (msgctl(log_queue_id, IPC_SET, &qstatus) < 0) {
+        printf("Call to msgctl failed.\n");
+        exit(-1);
     }
 
     // Чтобы можно было завершить логер, послав ему сигнал SIGTERM.
     // Это будет работать как для логера в отдельном потоке (использовать pthread_kill),
     // так и для логера в отдельном процессе (использовать kill).
     if (signal(SIGTERM, sigterm_handler) == SIG_ERR) {
-        return -1;
+        printf("Can't set signal handler.\n");
+        exit(-1);
     }
 
     queue_msg_t cur_msg;
@@ -71,10 +76,7 @@ int start_logger(void) {
     while (true) {
         if (msgrcv(log_queue_id, &cur_msg, sizeof(cur_msg), 1, MSG_NOERROR) != -1) {
             printf("message received: %s\n", cur_msg.mtext);
-            if (save_log(logger_state.logs_dir, cur_msg.mtext) < 0) {
-                printf("Error in save_log function call.\n");
-                return -1;
-            }
+            save_log(logger_state.logs_dir, cur_msg.mtext);
         }
     }
 }
@@ -119,13 +121,8 @@ int log_trace(const char *format, ...) {
     return rc;
 }
 
-int save_log(const char *logs_dir, const char *message) {
+void save_log(const char *logs_dir, const char *message) {
     size_t message_length = strlen(message);
-
-    if (message_length == 0) {
-        return 0;
-    }
-
     time_t now = time(NULL);
     struct tm *timenow = gmtime(&now);
 
@@ -147,7 +144,7 @@ int save_log(const char *logs_dir, const char *message) {
 
     if (f == NULL) {
         printf("Can't open or create log file: <%s>.\n", log_path);
-        return -1;
+        exit(-1);
     }
 
     char timeString[12];
@@ -168,8 +165,6 @@ int save_log(const char *logs_dir, const char *message) {
     fclose(f);
     free(full_log_msg);
     free(log_path);
-
-    return 0;
 }
 
 int send_log_message(const char *message) {
@@ -197,6 +192,7 @@ int send_log_message(const char *message) {
     // пока msgctl не работает, это решает проблему с отправкой в неблокирующем вызове.
     int i = 0, rc = -1;
     errno = EAGAIN;
+    
     for (; rc == -1 && errno == EAGAIN && i < MAX_SEND_RETRIES; i++) {
         printf("retrying: retry %d\n", i);
         rc = msgsnd(log_queue_id, &new_msg, sizeof(new_msg), IPC_NOWAIT);

@@ -27,12 +27,9 @@ typedef enum log_level {
 } log_level_te;
 
 #define LOGGER_NAME_MAX_LENGTH 1024
-#define LOGGER_PATH_MAX_LENGTH 1024
-
 #define MAX_QUEUE_SIZE         16384
-
 #define MAX_SEND_RETRIES       5
-#define WAIT_BEFORE_RETRY     1000
+#define WAIT_BEFORE_RETRY      1000
 
 typedef enum {
     THREAD,
@@ -41,8 +38,8 @@ typedef enum {
 
 typedef struct logger_state {
     char logger_name[LOGGER_NAME_MAX_LENGTH];
-    char logs_dir[LOGGER_PATH_MAX_LENGTH];
-    char fd_queue_path[LOGGER_PATH_MAX_LENGTH];
+    char logs_dir[PATH_MAX_LENGTH];
+    char fd_queue_path[PATH_MAX_LENGTH];
     log_level_te current_log_level;
     int queue_id;
     key_t ipc_key;
