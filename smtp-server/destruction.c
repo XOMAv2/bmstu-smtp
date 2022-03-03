@@ -54,6 +54,9 @@ void exec_all_dtors(void) {
             case INT_DTOR:
                 dtor_pool[i].int_dtor.call(dtor_pool[i].int_dtor.arg);
                 break;
+            case REGEX_DTOR:
+                dtor_pool[i].regex_dtor.call(dtor_pool[i].regex_dtor.regexes, dtor_pool[i].regex_dtor.cnt);
+                break;
         }
     }
 

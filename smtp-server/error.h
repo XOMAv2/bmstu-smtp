@@ -25,7 +25,7 @@
 #define ERR_REGEX_NO_CRLF             -207
 #define ERR_REGEX_NO_FROM             -208
 #define ERR_REGEX_NO_REVERSE_PATH     -209
-#define ERR_REGEX_INVALID_MAIL_PARAMS -210
+#define ERR_REGEX_INVALID_MAIL        -210
 
 // Socket ops errors
 #define ERR_SOCKET_INIT               -300
@@ -62,7 +62,7 @@
 #define ERR_REGEX_NO_CRLF_MESSAGE               "no CRLF sequence found at the end of the message"
 #define ERR_REGEX_NO_FROM_MESSAGE               "no FROM section in MAIL message"
 #define ERR_REGEX_NO_REVERSE_PATH_MESSAGE       "no reverse-path section in MAIL message"
-#define ERR_REGEX_INVALID_MAIL_PARAMS_MESSAGE   "mail params sequence not matches with pattern"
+#define ERR_REGEX_INVALID_MAIL_MESSAGE          "mail params sequence not matches with pattern"
 
 #define ERR_SOCKET_INIT_MESSAGE                 "can't create server socket"
 #define ERR_SOCKET_BIND_MESSAGE                 "can't bind server socket"

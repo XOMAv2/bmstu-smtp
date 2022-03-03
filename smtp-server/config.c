@@ -101,7 +101,7 @@ err_code_t parse_logger_config(const config_setting_t *logger_settings,
         snprintf(error_message, ERROR_MESSAGE_MAX_LENGTH, "can't parse logger log_dir");
         return ERR_PARSE_LOGGER_CONFIG;
     }
-    strncpy(logger_state->logs_dir, buff, LOGGER_PATH_MAX_LENGTH);
+    strncpy(logger_state->logs_dir, buff, PATH_MAX_LENGTH);
     printf("\nlogger log dir loaded\n");
 
     if (config_setting_lookup_string(logger_settings, CONFIG_LOGGER_QUEUE_PATH, &buff) !=
@@ -109,7 +109,7 @@ err_code_t parse_logger_config(const config_setting_t *logger_settings,
         snprintf(error_message, ERROR_MESSAGE_MAX_LENGTH, "can't parse logger queue path");
         return ERR_PARSE_LOGGER_CONFIG;
     }
-    strncpy(logger_state->fd_queue_path, buff, LOGGER_PATH_MAX_LENGTH);
+    strncpy(logger_state->fd_queue_path, buff, PATH_MAX_LENGTH);
     printf("\nlogger queue path loaded\n");
 
     if (config_setting_lookup_int(logger_settings, CONFIG_LOGGER_QUEUE_ID, &logger_state->queue_id) != CONFIG_TRUE) {
@@ -129,6 +129,8 @@ err_code_t parse_logger_config(const config_setting_t *logger_settings,
     }
     logger_state->current_log_level = log_level;
     printf("\nlogger log level loaded\n");
+
+    return OP_SUCCESS;
 }
 
 // Parse whole application configuration. Config path can be passed through 

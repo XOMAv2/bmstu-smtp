@@ -141,9 +141,7 @@ err_code_t serve(int server_socket, char *restrict err_msg_buf) {
     int rc = OP_SUCCESS;
 
     // Precompile all regex patterns
-    const dtor_t regexes_dtor = {.int_dtor = {.call = free_regexes, .arg = CMD_NUM}, .type = INT_DTOR};
     compile_regexes();
-    add_dtor(&regexes_dtor);
 
     // Initialize socket pool with server socket
     socket_pool_t socket_pool = { .pool = NULL, .size = 1, .capacity = POOL_CHUNK_ALLOC };

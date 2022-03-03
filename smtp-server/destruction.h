@@ -12,6 +12,8 @@
 #ifndef NETWORK_PROTOCOLS_CP_DESTRUCTION_H
 #define NETWORK_PROTOCOLS_CP_DESTRUCTION_H
 
+#include <regex.h>
+
 typedef size_t dtor_id_t;
 
 typedef struct {
@@ -23,15 +25,23 @@ typedef struct {
     int arg;
 } int_dtor_t;
 
+typedef struct {
+    void (*call)(regex_t *restrict, int);
+    regex_t * regexes;
+    int cnt;
+} regex_dtor_t;
+
 typedef enum {
     VOID_DTOR,
-    INT_DTOR
+    INT_DTOR,
+    REGEX_DTOR
 } dtor_te;
 
 typedef struct {
     union {
         void_dtor_t void_dtor;
         int_dtor_t int_dtor;
+        regex_dtor_t regex_dtor;
     };
     dtor_te type;
 } dtor_t;

@@ -78,8 +78,8 @@ void log_error_raw(err_code_t code, const char *format, va_list* va_args) {
         case ERR_REGEX_NO_REVERSE_PATH:
             print_to_buf(buf, ERR_REGEX_NO_REVERSE_PATH_MESSAGE, format, va_args);
             break;
-        case ERR_REGEX_INVALID_MAIL_PARAMS:
-            print_to_buf(buf, ERR_REGEX_INVALID_MAIL_PARAMS_MESSAGE, format, va_args);
+        case ERR_REGEX_INVALID_MAIL:
+            print_to_buf(buf, ERR_REGEX_INVALID_MAIL_MESSAGE, format, va_args);
             break;
         case ERR_SOCKET_INIT:
             print_to_buf(buf, ERR_SOCKET_INIT_MESSAGE, format, va_args);
