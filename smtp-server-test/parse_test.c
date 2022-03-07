@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <string.h>
 #include <stdbool.h>
-#include <stdlib.h>
 
 #include "parse_test.h"
 #include "parse.h"
@@ -22,10 +21,8 @@ void test_parse_str_scenario(cmd_te cmd, const char *restrict message, const cha
         snprintf(message_buf, MAX_MESSAGE_LENGTH, "%s%s", cmd_to_str(cmd), crlf);
     }
 
-    command_t command = {
-            .message = message_buf,
-            .state = SMTP_SERVER_FSM_ST_INIT
-    };
+    conn_state_t conn_state = { .fsm_state = SMTP_SERVER_FSM_ST_INIT };
+    command_t command = { .message = message_buf, .conn_state = &conn_state };
 
     if (!is_parsed) {
         assert(parse_smtp_message(&command) != OP_SUCCESS);
@@ -35,7 +32,7 @@ void test_parse_str_scenario(cmd_te cmd, const char *restrict message, const cha
     assert(parse_smtp_message(&command) == OP_SUCCESS);
     assert(command.cmd == cmd);
     assert(command.event == cmd_to_event(cmd));
-    assert(command.state == SMTP_SERVER_FSM_ST_INIT);
+    assert(command.conn_state->fsm_state == SMTP_SERVER_FSM_ST_INIT);
     if (message) {
         assert(strcmp((char *) command.data, message) == 0);
     } else {
@@ -53,10 +50,8 @@ void test_parse_data_int_scenario(const char *restrict message, const char *rest
         snprintf(message_buf, MAX_MESSAGE_LENGTH, "%s", crlf);
     }
 
-    command_t command = {
-            .message = message_buf,
-            .state = SMTP_SERVER_FSM_ST_DATA
-    };
+    conn_state_t conn_state = { .fsm_state = SMTP_SERVER_FSM_ST_DATA };
+    command_t command = { .message = message_buf, .conn_state = &conn_state };
 
     if (!is_parsed) {
         assert(parse_smtp_message(&command) != OP_SUCCESS);
@@ -66,7 +61,7 @@ void test_parse_data_int_scenario(const char *restrict message, const char *rest
     assert(parse_smtp_message(&command) == OP_SUCCESS);
     assert(command.cmd == CMD_DATA_INT);
     assert(command.event == SMTP_SERVER_FSM_EV_RECV_DATA_INT);
-    assert(command.state == SMTP_SERVER_FSM_ST_DATA);
+    assert(command.conn_state->fsm_state == SMTP_SERVER_FSM_ST_DATA);
     if (message) {
         assert(strcmp((char *) command.data, message) == 0);
     } else {
@@ -104,10 +99,8 @@ void test_parse_path_scenario(const char *restrict prefix,
     }
     snprintf(message + message_len, MAX_MESSAGE_LENGTH - message_len, "%s", crlf);
 
-    command_t command = {
-            .message = message,
-            .state = SMTP_SERVER_FSM_ST_INIT
-    };
+    conn_state_t conn_state = { .fsm_state = SMTP_SERVER_FSM_ST_INIT };
+    command_t command = { .message = message, .conn_state = &conn_state };
 
     if (!is_parsed) {
         assert(parse_smtp_message(&command) != OP_SUCCESS);
@@ -118,7 +111,7 @@ void test_parse_path_scenario(const char *restrict prefix,
     assert(parse_smtp_message(&command) == OP_SUCCESS);
     assert(command.cmd == cmd);
     assert(command.event == cmd_to_event(cmd));
-    assert(command.state == SMTP_SERVER_FSM_ST_INIT);
+    assert(command.conn_state->fsm_state == SMTP_SERVER_FSM_ST_INIT);
 
     // Assert command data.
     path_data_t *path_data = (path_data_t *) command.data;

@@ -357,7 +357,7 @@ err_code_t parse_smtp_message(command_t *restrict command) {
     if (message_len < EMPTY_CMD_LENGTH ||
         cmd_code_to_cmd_event(command->message, &command->cmd, &command->event) < 0) {
 
-        if (command->state == SMTP_SERVER_FSM_ST_DATA) {
+        if (command->conn_state->fsm_state == SMTP_SERVER_FSM_ST_DATA) {
             command->cmd = CMD_DATA_INT;
             command->event = SMTP_SERVER_FSM_EV_RECV_DATA_INT;
 

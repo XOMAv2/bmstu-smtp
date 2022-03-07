@@ -55,11 +55,8 @@
  *  should be the value of the "maybe_next" argument.
  */
 typedef te_smtp_server_fsm_state (smtp_server_fsm_callback_t)(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt );
+    command_t *restrict command,
+    te_smtp_server_fsm_state maybe_next);
 
 static smtp_server_fsm_callback_t
     smtp_server_fsm_do_accepted,
@@ -337,12 +334,7 @@ smtp_server_fsm_invalid_transition( te_smtp_server_fsm_state st, te_smtp_server_
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_accepted(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_accepted(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == ACCEPTED == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -350,12 +342,7 @@ smtp_server_fsm_do_accepted(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_close(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_close(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == CLOSE == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -363,12 +350,7 @@ smtp_server_fsm_do_close(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_data(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_data(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == DATA == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -376,12 +358,7 @@ smtp_server_fsm_do_data(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_ehlo(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_ehlo(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == EHLO == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -389,12 +366,7 @@ smtp_server_fsm_do_ehlo(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_helo(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_helo(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == HELO == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -402,25 +374,15 @@ smtp_server_fsm_do_helo(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_invalid(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_invalid(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == INVALID == DO NOT CHANGE THIS COMMENT  */
-    exit(smtp_server_fsm_invalid_transition(initial, trans_evt));
+    exit(smtp_server_fsm_invalid_transition(command->conn_state->fsm_state, command->event));
 /*  END   == INVALID == DO NOT CHANGE THIS COMMENT  */
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_mail(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_mail(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == MAIL == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -428,12 +390,7 @@ smtp_server_fsm_do_mail(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_mail_received(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_mail_received(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == MAIL RECEIVED == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -441,12 +398,7 @@ smtp_server_fsm_do_mail_received(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_quit(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_quit(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == QUIT == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -454,12 +406,7 @@ smtp_server_fsm_do_quit(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_rcpt(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_rcpt(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == RCPT == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -467,12 +414,7 @@ smtp_server_fsm_do_rcpt(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_rset(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_rset(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == RSET == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -480,12 +422,7 @@ smtp_server_fsm_do_rset(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_timeout(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_timeout(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == TIMEOUT == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -493,12 +430,7 @@ smtp_server_fsm_do_timeout(
 }
 
 static te_smtp_server_fsm_state
-smtp_server_fsm_do_vrfy(
-    conn_state_t *conn_state,
-    const void *data,
-    te_smtp_server_fsm_state initial,
-    te_smtp_server_fsm_state maybe_next,
-    te_smtp_server_fsm_event trans_evt)
+smtp_server_fsm_do_vrfy(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == VRFY == DO NOT CHANGE THIS COMMENT  */
     return maybe_next;
@@ -511,34 +443,30 @@ smtp_server_fsm_do_vrfy(
  *  SMTP_SERVER_FSM_ST_INIT and returns SMTP_SERVER_FSM_ST_INIT.
  */
 te_smtp_server_fsm_state
-smtp_server_fsm_step(
-    te_smtp_server_fsm_state smtp_server_fsm_state,
-    te_smtp_server_fsm_event trans_evt,
-    conn_state_t *conn_state,
-    const void *data )
+smtp_server_fsm_step(command_t *restrict command)
 {
     te_smtp_server_fsm_state nxtSt;
     smtp_server_fsm_callback_t * pT;
 
-    if ((unsigned)smtp_server_fsm_state >= SMTP_SERVER_FSM_ST_INVALID) {
+    if ((unsigned)command->conn_state->fsm_state >= SMTP_SERVER_FSM_ST_INVALID) {
         return SMTP_SERVER_FSM_ST_INIT;
     }
 
 #ifndef __COVERITY__
-    if (trans_evt >= SMTP_SERVER_FSM_EV_INVALID) {
+    if (command->event >= SMTP_SERVER_FSM_EV_INVALID) {
         nxtSt = SMTP_SERVER_FSM_ST_INVALID;
         pT    = smtp_server_fsm_do_invalid;
     } else
 #endif /* __COVERITY__ */
     {
         const t_smtp_server_fsm_transition * ttbl =
-            smtp_server_fsm_trans_table[ smtp_server_fsm_state ] + trans_evt;
+            smtp_server_fsm_trans_table[ command->conn_state->fsm_state ] + command->event;
         nxtSt = ttbl->next_state;
         pT    = ttbl->trans_proc;
     }
 
     if (pT != NULL)
-        nxtSt = (*pT)( conn_state, data, smtp_server_fsm_state, nxtSt, trans_evt );
+        nxtSt = (*pT)( command, nxtSt );
 
 
     /* START == FINISH STEP == DO NOT CHANGE THIS COMMENT */

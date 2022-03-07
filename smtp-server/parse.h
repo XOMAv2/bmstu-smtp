@@ -7,7 +7,7 @@
 
 #include <regex.h>
 
-#include "server-fsm.h"
+#include "data.h"
 #include "error.h"
 
 #define SP " "
@@ -46,12 +46,7 @@
 #define MAIL_REGEX_NUM           3
 #define MAX_REGEX_MATCHES        10
 
-// Command indices enum for extracting regex parsers.
-typedef enum {
-    CMD_HELO, CMD_EHLO, CMD_MAIL,
-    CMD_RCPT, CMD_DATA, CMD_DATA_INT,
-    CMD_RSET, CMD_NOOP, CMD_VRFY, CMD_QUIT
-} cmd_te;
+
 
 // Regex enum for extracting predefined command data regex patterns.
 typedef enum {
@@ -59,43 +54,6 @@ typedef enum {
     RGX_MAIL,  // MAIL message data pattern
     RGX_RCPT,  // RCPT message data pattern
 } rgx_te;
-
-// Optional MAIL param structure (simply a key-value pair).
-typedef struct {
-    const char *key;
-    const char *value;
-} cmd_param_t;
-
-// Data for path containing command (MAIL or RCPT) receiving
-// by server from client (according to RFC-5321).
-typedef struct {
-    // At-domain list (can be used for source
-    // routing, but highly not recommended).
-    const char *adl;
-    // Sender mailbox address.
-    const char *mailbox;
-    // Optional command parameters (can be ignored and for now it is).
-    const cmd_param_t *params;
-    // Optional command parameters number.
-    size_t params_cnt;
-} path_data_t;
-
-// Client command data structure each received client message is wrapped in.
-// It passes to parsers and then to the FSM, so it carries all processing pipeline data.
-typedef struct {
-    // Command code which using for extracting
-    // message parser from precompiled parsers list.
-    cmd_te cmd;
-    // Message received from connection socket.
-    char *restrict message;
-    // Current connection state in which command was received.
-    te_smtp_server_fsm_state state;
-    // Event that will be defined according to
-    // message content and passed to connection FSM.
-    te_smtp_server_fsm_event event;
-    // Command data (structure is command-dependent).
-    const void *data;
-} command_t;
 
 // Compile all predefined regexes in 'parse' module.
 // It stores in static fields not accessible from outside of module

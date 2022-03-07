@@ -30,20 +30,18 @@ err_code_t serve_conn_event(pollfd_t pollfd, conn_state_t *restrict conn_state, 
             return ERR_SOCKET_RECV;
         }
 
-        command_t command = { .message = message_buf, .state = conn_state->fsm_state };
+        command_t command = { .message = message_buf, .conn_state = conn_state };
 
         if (parse_smtp_message(&command) != OP_SUCCESS) {
             snprintf(err_msg_buf, ERROR_MESSAGE_MAX_LENGTH, "socket_fd=%d", pollfd.fd);
             return ERR_SMTP_INVALID_COMMAND;
         }
 
-        conn_state->fsm_state = smtp_server_fsm_step(conn_state->fsm_state, command.event, conn_state, command.data);
+        conn_state->fsm_state = smtp_server_fsm_step(&command);
 
     } else if (pollfd.revents & POLLHUP) {
-        conn_state->fsm_state = smtp_server_fsm_step(conn_state->fsm_state,
-                                                     SMTP_SERVER_FSM_EV_CONN_LOST,
-                                                     conn_state,
-                                                     NULL);
+        command_t command = { .conn_state = conn_state, .event = SMTP_SERVER_FSM_EV_CONN_LOST };
+        conn_state->fsm_state = smtp_server_fsm_step(&command);
         return OP_SUCCESS;
     } else {
         snprintf(err_msg_buf, ERROR_MESSAGE_MAX_LENGTH, "socket_fd=%d", pollfd.fd);
@@ -94,10 +92,12 @@ void socket_init(int socket_fd, size_t pos, socket_pool_entry_t *restrict socket
     dtor_id_t dtor_id = add_dtor(&sock_dtor);
 
     socket_pool[pos] = socket_pool_entry_ctor(socket_fd, POLL_FD_EVENTS, dtor_id);
-    socket_pool[pos].conn_state.fsm_state = smtp_server_fsm_step(SMTP_SERVER_FSM_ST_INIT,
-                                                                 SMTP_SERVER_FSM_EV_CONN_EST,
-                                                                 &socket_pool[pos].conn_state,
-                                                                 NULL);
+    socket_pool[pos].conn_state.fsm_state = SMTP_SERVER_FSM_ST_INIT;
+    command_t command = {
+        .conn_state = &socket_pool[pos].conn_state,
+        .event = SMTP_SERVER_FSM_EV_CONN_EST
+    };
+    socket_pool[pos].conn_state.fsm_state = smtp_server_fsm_step(&command);
 }
 
 err_code_t accept_conn(socket_pool_t *restrict socket_pool, char *restrict err_msg_buf) {

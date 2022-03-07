@@ -48,44 +48,8 @@
  */
 #ifndef AUTOFSM_SERVER_FSM_H_GUARD
 #define AUTOFSM_SERVER_FSM_H_GUARD 1
-/**
- *  Finite State machine States
- *
- *  Count of non-terminal states.  The generated states INVALID and DONE
- *  are terminal, but INIT is not  :-).
- */
 
-#define SMTP_SERVER_FSM_STATE_CT  9
-typedef enum {
-    SMTP_SERVER_FSM_ST_INIT,    SMTP_SERVER_FSM_ST_READY,
-    SMTP_SERVER_FSM_ST_HELO,    SMTP_SERVER_FSM_ST_MAIL,
-    SMTP_SERVER_FSM_ST_RCPT,    SMTP_SERVER_FSM_ST_DATA,
-    SMTP_SERVER_FSM_ST_SEND,    SMTP_SERVER_FSM_ST_QUIT,
-    SMTP_SERVER_FSM_ST_TIMEOUT, SMTP_SERVER_FSM_ST_INVALID,
-    SMTP_SERVER_FSM_ST_DONE
-} te_smtp_server_fsm_state;
-
-typedef struct {
-    te_smtp_server_fsm_state fsm_state;
-} conn_state_t;
-
-/**
- *  Finite State machine transition Events.
- *
- *  Count of the valid transition events
- */
-#define SMTP_SERVER_FSM_EVENT_CT 16
-typedef enum {
-    SMTP_SERVER_FSM_EV_RECV_HELO,     SMTP_SERVER_FSM_EV_RECV_EHLO,
-    SMTP_SERVER_FSM_EV_RECV_MAIL,     SMTP_SERVER_FSM_EV_RECV_RCPT,
-    SMTP_SERVER_FSM_EV_RECV_RSET,     SMTP_SERVER_FSM_EV_RECV_DATA,
-    SMTP_SERVER_FSM_EV_RECV_DATA_INT, SMTP_SERVER_FSM_EV_RECV_QUIT,
-    SMTP_SERVER_FSM_EV_RECV_NOOP,     SMTP_SERVER_FSM_EV_RECV_VRFY,
-    SMTP_SERVER_FSM_EV_RECV_UNKNOWN,  SMTP_SERVER_FSM_EV_CONN_EST,
-    SMTP_SERVER_FSM_EV_CONN_TIMEOUT,  SMTP_SERVER_FSM_EV_CONN_LOST,
-    SMTP_SERVER_FSM_EV_MSG_SAVED,     SMTP_SERVER_FSM_EV_TERM_SEQ,
-    SMTP_SERVER_FSM_EV_INVALID
-} te_smtp_server_fsm_event;
+#include "data.h"
 
 /**
  *  Step the FSM.  Returns the resulting state.  If the current state is
@@ -93,11 +57,7 @@ typedef enum {
  *  SMTP_SERVER_FSM_ST_INIT and returns SMTP_SERVER_FSM_ST_INIT.
  */
 extern te_smtp_server_fsm_state
-smtp_server_fsm_step(
-    te_smtp_server_fsm_state smtp_server_fsm_state,
-    te_smtp_server_fsm_event trans_evt,
-    conn_state_t *conn_state,
-    const void *data );
+smtp_server_fsm_step(command_t *restrict command);
 
 #endif /* AUTOFSM_SERVER_FSM_H_GUARD */
 /*
