@@ -371,3 +371,46 @@ err_code_t parse_smtp_message(command_t *restrict command) {
 
     return parse_message_data(command);
 }
+
+// Destructor command_t structure. Tried to free all
+// available data if not null except command.message,
+// because it is supposed to be always allocated on stack.
+void command_dtor(command_t *restrict command) {
+    if (command == NULL) return;
+
+    if (command->data != NULL) {
+        if (command->cmd == CMD_MAIL || command->cmd == CMD_RCPT) {
+            path_data_t *path_data = (path_data_t*)command->data;
+            if (path_data->adl) {
+                free((void*)path_data->adl);
+            }
+            if (path_data->mailbox) {
+                free((void*)path_data->mailbox);
+            }
+            if (path_data->params) {
+                for (int i = 0; i < path_data->params_cnt; i++) {
+                    free((void*)path_data->params[i].key);
+                    free((void*)path_data->params[i].value);
+                }
+                free((void*)path_data->params);
+            }
+        }
+
+        free((void*)command->data);
+        command->data = NULL;
+    }
+}
+
+char *heap_str(const char *restrict str) {
+    assert(str);
+
+    size_t str_len = strlen(str);
+    char *heap_data = calloc(str_len + 1, sizeof(char));
+    if (heap_data == NULL) {
+        exit_with_error_message(ERR_NOT_ALLOCATED, "copy_str_to_heap");
+    }
+
+    strncpy(heap_data, str, str_len);
+
+    return heap_data;
+}

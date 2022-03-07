@@ -93,8 +93,8 @@ int main(int argc, char *argv[]) {
     log_info("maildir: %s\n", server_config.maildir);
 
     regex_t r;
-    const char *regex_text = "^[Tt][Oo]:<((Postmaster)|(Postmaster@.+)|(.*:)?(.+@.+))>( .+=.+)*(\r\n)$";
-    const char *find_text = "TO:<reverse:Postmaster@domain> param1=1 param2=3\r\n";
+    const char *regex_text = "^ [Tt][Oo]:<(.*:)?(.+)?>( .+=.+)*(\r\n)$";
+    const char *find_text = " TO:<reverse.path:> param_1=value_1\r\n";
 
     printf("Trying to find '%s' in '%s'\n", regex_text, find_text);
     rcompile(&r, regex_text);

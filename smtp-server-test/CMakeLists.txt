@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(smtp_server C)
+project(smtp_server_test C)
 
 include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
@@ -12,8 +12,10 @@ file(GLOB CODE_FILES *.c)
 
 include_directories(${smtp_common_INCLUDE_DIRS})
 
-add_executable(smtp_server ${CODE_FILES})
+include_directories(${smtp_server_INCLUDE_DIRS})
 
-add_library(smtp_server_lib STATIC ${CODE_FILES})
+add_executable(smtp_server_test ${CODE_FILES})
 
-target_link_libraries(smtp_server smtp_common config)
+target_link_libraries(smtp_server_test smtp_server_lib smtp_common config)
+
+

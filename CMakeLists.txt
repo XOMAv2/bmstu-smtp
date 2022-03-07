@@ -4,3 +4,5 @@ project(bmstu_smtp C)
 add_subdirectory("${PROJECT_SOURCE_DIR}/smtp-client")
 add_subdirectory("${PROJECT_SOURCE_DIR}/smtp-server")
 add_subdirectory("${PROJECT_SOURCE_DIR}/smtp-common")
+
+add_subdirectory("${PROJECT_SOURCE_DIR}/smtp-server-test")

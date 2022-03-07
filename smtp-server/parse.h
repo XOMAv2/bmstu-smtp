@@ -126,4 +126,10 @@ _Bool is_empty_cmd(cmd_te cmd);
 // Check if command with specified numeric code can have empty payload.
 _Bool is_may_be_empty_cmd(cmd_te cmd);
 
+// Copy nonempty null terminated string to preliminarily allocated heap memory.
+// New string will be null terminated too.
+// Allocate singe char with zero code in case of empty input string.
+// Call exit() in case memory allocation error.
+char *heap_str(const char *restrict str);
+
 #endif //NETWORK_PROTOCOLS_CP_PARSE_H
