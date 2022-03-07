@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "smtp.h"
+#include "protocol.h"
 #include "parse.h"
 #include "defines.h"
 #include "destruction.h"
@@ -30,9 +30,9 @@ err_code_t serve_conn_event(pollfd_t pollfd, conn_state_t *restrict conn_state, 
             return ERR_SOCKET_RECV;
         }
 
-        command_t command;
+        command_t command = { .message = message_buf, .state = conn_state->fsm_state };
 
-        if (parse_smtp_message(message_buf, &command) != OP_SUCCESS) {
+        if (parse_smtp_message(&command) != OP_SUCCESS) {
             snprintf(err_msg_buf, ERROR_MESSAGE_MAX_LENGTH, "socket_fd=%d", pollfd.fd);
             return ERR_SMTP_INVALID_COMMAND;
         }
@@ -155,7 +155,7 @@ err_code_t serve(int server_socket, char *restrict err_msg_buf) {
     socket_pool.pool[SERVER_SOCKET_IDX] = socket_pool_entry_ctor(server_socket, POLL_FD_EVENTS, dtor_id);
 
     // Infinite serve loop
-    while (TRUE) {
+    while (true) {
         int ready_count = poll((pollfd_t *) socket_pool.pool, socket_pool.size, DEFAULT_POLL_TIMEOUT_MS);
         if (ready_count < 0) {
             log_error_code(ERR_SOCKET_POLL);

@@ -2,8 +2,8 @@
 // Created by Karpukhin Aleksandr on 20.02.2022.
 //
 
-#ifndef NETWORK_PROTOCOLS_CP_SMTP_H
-#define NETWORK_PROTOCOLS_CP_SMTP_H
+#ifndef NETWORK_PROTOCOLS_CP_PROTOCOL_H
+#define NETWORK_PROTOCOLS_CP_PROTOCOL_H
 
 #include <poll.h>
 
@@ -41,4 +41,4 @@ err_code_t server_init(const server_config_t *server_config, int *restrict serve
 // - for each client socket - receive data from existing connection and perform necessary actions with/without response
 err_code_t serve(int server_socket, char *restrict err_msg);
 
-#endif //NETWORK_PROTOCOLS_CP_SMTP_H
+#endif //NETWORK_PROTOCOLS_CP_PROTOCOL_H

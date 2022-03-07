@@ -97,7 +97,7 @@ smtp_server_fsm_step(
     te_smtp_server_fsm_state smtp_server_fsm_state,
     te_smtp_server_fsm_event trans_evt,
     conn_state_t *conn_state,
-    void *data );
+    const void *data );
 
 #endif /* AUTOFSM_SERVER_FSM_H_GUARD */
 /*

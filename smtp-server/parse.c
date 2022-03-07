@@ -3,48 +3,86 @@
 //
 
 #include <assert.h>
-#include <regex.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include "parse.h"
-#include "error.h"
 #include "defines.h"
 #include "destruction.h"
 
-err_code_t cmd_code_to_cmd_event(const char *cmd_code, cmd_te *restrict cmd, te_smtp_server_fsm_event *restrict event) {
-    assert(cmd_code != NULL && cmd != NULL && event != NULL);
+err_code_t cmd_code_to_cmd_event(const char *restrict message, cmd_te *restrict cmd, te_smtp_server_fsm_event *restrict event) {
+    assert(message != NULL && cmd != NULL && event != NULL);
+    assert(strlen(message) >= EMPTY_CMD_LENGTH);
+
+    char cmd_code[CMD_CODE_LENGTH + 1] = { 0 };
+
+    strncpy(cmd_code, message, CMD_CODE_LENGTH);
 
     if (!strcmp(cmd_code, SMTP_HELO_CMD_CODE)) {
-        *cmd = HELO;
-        *event = SMTP_SERVER_FSM_EV_RECV_HELO;
+        *cmd = CMD_HELO;
     } else if (!strcmp(cmd_code, SMTP_EHLO_CMD_CODE)) {
-        *cmd = EHLO;
-        *event = SMTP_SERVER_FSM_EV_RECV_EHLO;
+        *cmd = CMD_EHLO;
     } else if (!strcmp(cmd_code, SMTP_MAIL_CMD_CODE)) {
-        *cmd = MAIL;
-        *event = SMTP_SERVER_FSM_EV_RECV_MAIL;
+        *cmd = CMD_MAIL;
     } else if (!strcmp(cmd_code, SMTP_RCPT_CMD_CODE)) {
-        *cmd = RCPT;
-        *event = SMTP_SERVER_FSM_EV_RECV_RCPT;
+        *cmd = CMD_RCPT;
     } else if (!strcmp(cmd_code, SMTP_DATA_CMD_CODE)) {
-        *cmd = DATA;
-        *event = SMTP_SERVER_FSM_EV_RECV_DATA;
+        *cmd = CMD_DATA;
     } else if (!strcmp(cmd_code, SMTP_RSET_CMD_CODE)) {
-        *cmd = RSET;
-        *event = SMTP_SERVER_FSM_EV_RECV_RSET;
+        *cmd = CMD_RSET;
     } else if (!strcmp(cmd_code, SMTP_NOOP_CMD_CODE)) {
-        *cmd = NOOP;
-        *event = SMTP_SERVER_FSM_EV_RECV_NOOP;
+        *cmd = CMD_NOOP;
     } else if (!strcmp(cmd_code, SMTP_VRFY_CMD_CODE)) {
-        *cmd = VRFY;
-        *event = SMTP_SERVER_FSM_EV_RECV_VRFY;
+        *cmd = CMD_VRFY;
     } else if (!strcmp(cmd_code, SMTP_QUIT_CMD_CODE)) {
-        *cmd = QUIT;
-        *event = SMTP_SERVER_FSM_EV_RECV_QUIT;
+        *cmd = CMD_QUIT;
+    } else {
+        return ERR_SMTP_INVALID_COMMAND;
     }
 
-    return ERR_SMTP_INVALID_COMMAND;
+    *event = cmd_to_event(*cmd);
+
+    return OP_SUCCESS;
+}
+
+// Order and quantity must match cmd_te enum.
+static te_smtp_server_fsm_event cmd_events[CMD_NUM] = {
+        SMTP_SERVER_FSM_EV_RECV_HELO,
+        SMTP_SERVER_FSM_EV_RECV_EHLO,
+        SMTP_SERVER_FSM_EV_RECV_MAIL,
+        SMTP_SERVER_FSM_EV_RECV_RCPT,
+        SMTP_SERVER_FSM_EV_RECV_DATA,
+        SMTP_SERVER_FSM_EV_RECV_DATA_INT,
+        SMTP_SERVER_FSM_EV_RECV_RSET,
+        SMTP_SERVER_FSM_EV_RECV_NOOP,
+        SMTP_SERVER_FSM_EV_RECV_VRFY,
+        SMTP_SERVER_FSM_EV_RECV_QUIT
+};
+
+te_smtp_server_fsm_event cmd_to_event(cmd_te cmd) {
+    return cmd < CMD_NUM ? cmd_events[cmd] : -1;
+}
+
+// Order and quantity must match cmd_te enum.
+static char* cmd_codes[CMD_NUM] = {
+        "HELO", "EHLO", "MAIL",
+        "RCPT", "DATA", "DATA_INT",
+        "RSET", "NOOP", "VRFY", "QUIT"
+};
+
+const char* cmd_to_str(cmd_te cmd) {
+    return cmd < CMD_NUM ? cmd_codes[cmd] : NULL;
+}
+
+// Order and quantity must match cmd_te enum.
+static rgx_te cmd_rgxs[CMD_NUM] = {
+        RGX_STR, RGX_STR, RGX_MAIL,
+        RGX_RCPT, RGX_STR, RGX_STR,
+        RGX_STR, RGX_STR, RGX_STR, RGX_STR
+};
+
+rgx_te cmd_to_rgx(cmd_te cmd) {
+    return cmd < CMD_NUM ? cmd_rgxs[cmd] : -1;
 }
 
 // Patterns are specified without command codes (drop <CMD SP> part) because codes are used and
@@ -52,69 +90,101 @@ err_code_t cmd_code_to_cmd_event(const char *cmd_code, cmd_te *restrict cmd, te_
 // CAUTION: this POSIX regex implementation fails in endless search if regular
 // expression consists only of optional matching groups (i.e. <(smth)?>).
 // Any expression must contain at least one obligatory group, in our case it is <CLRF> sequence.
-// So if regexec() call fails it means than no <CLRF> sequence at the end of the message was found
-static const char *cmd_regex_patterns[CMD_NUM] = {
+// So if regexec() call fails it means than no <CLRF> sequence at the end of the message was found.
+static const char *cmd_regex_patterns[RGX_NUM] = {
         // helo = "HELO" SP Domain CRLF
-        "^(.+)?(\r\n)$",
         // ehlo = "EHLO" SP ( Domain / address-literal ) CRLF
-        "^(.+)?(\r\n)$",
+        // data = ( "DATA" / some_string / "." ) CRLF
+        // noop = "NOOP" [ SP String ] CRLF
+        // vrfy = "VRFY" SP String CRLF
+        "^(( )?(.+)?)(\r\n)$",
         // mail = "MAIL FROM:" Reverse-path [SP Mail-parameters] CRLF
         // use (.*:) instead of (.+:) for adl part to prevent parsing ':' as part of mailbox in case of empty adl
-        "^[Ff][Rr][Oo][Mm]:<(.*:)?(.+@.+)>( .+=.+)*(\r\n)$",
+        "^ [Ff][Rr][Oo][Mm]:<(.*:)?(.+@.+)?>( .+=.+)*(\r\n)$",
         // rcpt = "RCPT TO:" ( "<Postmaster@" Domain ">" / "<Postmaster>" / Forward-path ) [SP Rcpt-parameters] CRLF
-        "^[Tt][Oo]:<(.*:)?(.+)>( .+=.+)*(\r\n)$",
-        "^[Dd][Aa][Tt][Aa]command->cmd(\r\n)$",
-        "^[Rr][Ss][Ee][Tt](\r\n)$",
-        "^[Nn][Oo][Oo][Pp](\r\n)$",
-        "^[Vv][Rr][Ff][Yy] (.+?)(\r\n)$",
-        "^[Qq][Uu][Ii][Tt](\r\n)$"
+        "^ [Tt][Oo]:<(.*:)?(.+)?>( .+=.+)*(\r\n)$"
 };
 
-static regex_t cmd_regexes[CMD_NUM] = {0};
+static regex_t cmd_regexes[RGX_NUM] = {0};
 
-#define PARSE_HELO_MESSAGE_IDX 1
-
-err_code_t parse_helo_message(char *restrict message, void **restrict data) {
-    assert(data = NULL);
-
-    regmatch_t matches[MAX_REGEX_MATCHES];
-    const regmatch_t *message_match = matches + PARSE_HELO_MESSAGE_IDX;
-
-    if (regexec(&cmd_regexes[HELO], message, MAX_REGEX_MATCHES, matches, 0)) {
-        return ERR_REGEX_NO_CRLF;
-    } else if (message_match->rm_so == -1) {
-        return ERR_REGEX_NO_DOMAIN;
-    }
-
-    size_t domain_len = message_match->rm_eo - message_match->rm_so;
-    char *domain = calloc(domain_len, sizeof(char));
-    if (domain == NULL) {
-        exit_with_error_code(ERR_NOT_ALLOCATED);
-    }
-    strncpy(domain, message + message_match->rm_so, domain_len);
-
-    return OP_SUCCESS;
+_Bool is_empty_cmd(cmd_te cmd) {
+    return (cmd == CMD_DATA || cmd == CMD_RSET || cmd == CMD_QUIT);
 }
 
-err_code_t parse_ehlo_message(char *restrict message, void **restrict data) {
-    return parse_helo_message(message, data);
+_Bool is_may_be_empty_cmd(cmd_te cmd) {
+    return (cmd == CMD_DATA_INT || cmd == CMD_NOOP);
+}
+
+char* parse_str_data(const regmatch_t *restrict data_match, const char *restrict message, cmd_te cmd) {
+    assert(message != NULL && data_match != NULL);
+
+    size_t str_len = data_match->rm_eo - data_match->rm_so;
+    char *str = calloc(str_len + 1, sizeof(char));
+
+    if (str == NULL) {
+        exit_with_error_message(ERR_NOT_ALLOCATED, "%s:message", cmd_to_str(cmd));
+    }
+
+    strncpy(str, message + data_match->rm_so, str_len);
+
+    return str;
+}
+
+err_code_t parse_str_message(command_t *restrict command) {
+    assert(command != NULL && command->message != NULL);
+
+    regmatch_t matches[MAX_REGEX_MATCHES];
+    const regmatch_t *payload_match = matches + PARSE_STR_PAYLOAD_IDX;
+    const regmatch_t *sp_match = matches + PARSE_STR_SP_IDX;
+    const regmatch_t *str_match = matches + PARSE_STR_DATA_IDX;
+
+    if (regexec(&cmd_regexes[cmd_to_rgx(command->cmd)], command->message, MAX_REGEX_MATCHES, matches, 0)) {
+        return ERR_REGEX_NOMATCH;
+    }
+
+    _Bool is_empty = is_empty_cmd(command->cmd);
+    _Bool is_may_be_empty = is_may_be_empty_cmd(command->cmd);
+
+    // Process empty or may be empty commands
+    if (is_empty || is_may_be_empty) {
+        if (sp_match->rm_so == -1 && str_match->rm_so == -1) {
+            command->data = NULL;
+            return OP_SUCCESS;
+        } else if (!is_may_be_empty) {
+            return ERR_REGEX_NOMATCH;
+        }
+    }
+
+    // Process intermediate data command (whole message except CRLF is interpreted as payload).
+    if (command->cmd == CMD_DATA_INT) {
+        command->data = parse_str_data(payload_match, command->message, command->cmd);
+        return OP_SUCCESS;
+    }
+
+    // Process rest of nonempty or maybe nonempty commands that starts with command code.
+    if (sp_match->rm_so != -1 && str_match->rm_so != -1) {
+        command->data = parse_str_data(str_match, command->message, command->cmd);
+        return OP_SUCCESS;
+    }
+
+    return ERR_REGEX_NOMATCH;
 }
 
 // Parse optional at-domain list from string matched by '(.*:)?' pattern.
-char *parse_path_adl(char *restrict message, const regmatch_t *adl_match, const char *cmd_code) {
-    assert(message != NULL && adl_match != NULL && cmd_code != NULL);
+char *parse_path_adl(char *restrict message, const regmatch_t *restrict adl_match, cmd_te cmd) {
+    assert(message != NULL && adl_match != NULL);
 
     if (adl_match->rm_so == -1) {
         return NULL;
     }
 
     char *adl = NULL;
-    size_t adl_len = adl_match->rm_eo - adl_match->rm_so;  // excluding ':' and including '\0'
+    size_t adl_len = adl_match->rm_eo - adl_match->rm_so - 1;  // excluding ':'
 
     if (adl_len > 0) {
-        adl = malloc(adl_len + 1);
+        adl = calloc(adl_len + 1, sizeof(char));
         if (adl == NULL) {
-            exit_with_error_message(ERR_NOT_ALLOCATED, "%s:adl", cmd_code);
+            exit_with_error_message(ERR_NOT_ALLOCATED, "%s:adl", cmd_to_str(cmd));
         }
         strncpy(adl, message + adl_match->rm_so, adl_len);
     }
@@ -122,61 +192,51 @@ char *parse_path_adl(char *restrict message, const regmatch_t *adl_match, const 
     return adl;
 }
 
-// Parse mandatory mailbox part of path from string matched by '.+@.+' pattern.
-char *parse_path_mailbox(char *restrict message, const regmatch_t *mailbox_match, const char *cmd_code) {
-    assert(message != NULL && mailbox_match != NULL && cmd_code != NULL);
-
-    size_t mailbox_len = mailbox_match->rm_eo - mailbox_match->rm_so + 1; // including '\0'
-    char *mailbox = malloc(mailbox_len);
-
-    if (mailbox == NULL) {
-        exit_with_error_message(ERR_NOT_ALLOCATED, "%s:mailbox", cmd_code);
-    }
-
-    strncpy(mailbox, message + mailbox_match->rm_so, mailbox_len);
-
-    return mailbox;
-}
-
 // Parse optional command parameters list (used for MAIL and RCPT).
 size_t parse_cmd_params(char *restrict message,
-                        const regmatch_t *params_match,
-                        const char *cmd_code,
-                        mail_param_t **restrict params_out) {
-    assert(message != NULL && params_match != NULL && cmd_code != NULL && params_out != NULL);
+                        const regmatch_t *restrict params_match,
+                        cmd_te cmd,
+                        cmd_param_t **restrict params_out) {
+    assert(message != NULL && params_match != NULL && params_out != NULL);
 
     if (params_match->rm_so == -1) {
         return 0;
     }
 
-    mail_param_t *params = NULL;
+    cmd_param_t *params = NULL;
     size_t params_cnt = 0;
 
-    char *param_part = strtok(message + params_match->rm_so, SP);
+    *(message + params_match->rm_eo) = '\0'; // dirty hack, it was too lazy to invent something more elegant
+
+    char *last;
+    char *param_part = strtok_r(message + params_match->rm_so, SP, &last);
     while (param_part) {
-        params = realloc(params, sizeof(mail_param_t) * (params_cnt + 1));
+        params = realloc(params, sizeof(cmd_param_t) * (params_cnt + 1));
         if (params == NULL) {
-            exit_with_error_message(ERR_NOT_ALLOCATED, "%s:params", cmd_code);
+            exit_with_error_message(ERR_NOT_ALLOCATED, "%s:params", cmd_to_str(cmd));
         }
 
-        size_t key_len = strspn(param_part, "=");
+        size_t key_len = strcspn(param_part, "=");
         size_t value_len = strlen(param_part) - key_len - 1;
 
-        params[params_cnt].key = malloc(key_len);
-        if (params[params_cnt].key == NULL) {
-            exit_with_error_message(ERR_NOT_ALLOCATED, "%s:param_key", cmd_code);
+        char *key = calloc(key_len + 1, sizeof(char));
+        if (key == NULL) {
+            exit_with_error_message(ERR_NOT_ALLOCATED, "%s:param_key", cmd_to_str(cmd));
         }
 
-        params[params_cnt].value = malloc(value_len);
-        if (params[params_cnt].value == NULL) {
-            exit_with_error_message(ERR_NOT_ALLOCATED, "%s:param_value", cmd_code);
+        char *value = calloc(value_len + 1, sizeof(char));
+        if (value == NULL) {
+            exit_with_error_message(ERR_NOT_ALLOCATED, "%s:param_value", cmd_to_str(cmd));
         }
 
-        strncpy(params[params_cnt].key, param_part, key_len);
-        strncpy(params[params_cnt].value, param_part + key_len + 1, value_len);
+        strncpy(key, param_part, key_len);
+        strncpy(value, param_part + key_len + 1, value_len);
+
+        params[params_cnt].key = key;
+        params[params_cnt].value = value;
 
         params_cnt++;
-        param_part = strtok(NULL, SP);
+        param_part = strtok_r(last, SP, &last);
     }
 
     *params_out = params;
@@ -184,118 +244,58 @@ size_t parse_cmd_params(char *restrict message,
     return params_cnt;
 }
 
-err_code_t parse_path_message(cmd_te cmd, char *restrict message, void **restrict data) {
-    assert(message != NULL && data != NULL);
+err_code_t parse_path_message(command_t *restrict command) {
+    assert(command != NULL && command->message != NULL);
 
     regmatch_t matches[MAX_REGEX_MATCHES];
 
     // Parse message body.
-    if (regexec(&cmd_regexes[cmd], message, MAX_REGEX_MATCHES, matches, 0)) {
-        return ERR_REGEX_INVALID_MAIL;
+    if (regexec(&cmd_regexes[cmd_to_rgx(command->cmd)], command->message, MAX_REGEX_MATCHES, matches, 0)) {
+        return ERR_REGEX_NOMATCH;
     }
 
     const regmatch_t *adl_match = matches + PARSE_MAIL_ADL_IDX;
     const regmatch_t *mailbox_match = matches + PARSE_MAIL_MAILBOX_IDX;
     const regmatch_t *params_match = matches + PARSE_MAIL_PARAMS_IDX;
 
-    const char *cmd_code = cmd == MAIL ? "MAIL" : "RCPT";
-
-    char *adl = parse_path_adl(message, adl_match, cmd_code);
-
-    mail_param_t *params = NULL;
-    size_t params_cnt = parse_cmd_params(message, params_match, cmd_code, &params);
+    if (mailbox_match->rm_so == -1) {
+        return ERR_REGEX_NOMATCH;
+    }
 
     // Parse mailbox (mandatory).
-    char *mailbox = parse_path_mailbox(message, mailbox_match, cmd_code);
+    char *mailbox = parse_str_data(mailbox_match, command->message, command->cmd);
+
+    // Parse adl (optional).
+    char *adl = parse_path_adl(command->message, adl_match, command->cmd);
+
+    // Parse params (optional).
+    cmd_param_t *params = NULL;
+    size_t params_cnt = parse_cmd_params(command->message, params_match, command->cmd, &params);
 
     // Store all message data to output structure.
     path_data_t *path_data = (path_data_t *) calloc(1, sizeof(path_data_t));
     if (path_data == NULL) {
-
-        exit_with_error_message(ERR_NOT_ALLOCATED, "%s:data", cmd_code);
+        exit_with_error_message(ERR_NOT_ALLOCATED, "%s:data", cmd_to_str(command->cmd));
     }
     path_data->adl = adl;
     path_data->params = params;
     path_data->params_cnt = params_cnt;
     path_data->mailbox = mailbox;
-    *data = path_data;
+    command->data = path_data;
 
     return OP_SUCCESS;
 }
 
-err_code_t parse_mail_message(char *restrict message, void **restrict data) {
-    return parse_path_message(MAIL, message, data);
-}
+err_code_t parse_message_data(command_t *restrict command) {
+    assert(command != NULL && command->message != NULL);
 
-err_code_t parse_rcpt_message(char *restrict message, void **restrict data) {
-    return parse_path_message(RCPT, message, data);
-}
-
-err_code_t parse_data_message(char *restrict message, void **restrict data) {
-    assert(data = NULL);
-
-    regmatch_t matches[MAX_REGEX_MATCHES];
-
-    if (regexec(&cmd_regexes[DATA], message, MAX_REGEX_MATCHES, matches, 0)) {
-        ERR_REGEX_NO_CRLF;
+    switch (command->cmd) {
+    case CMD_MAIL: case CMD_RCPT:
+            return parse_path_message(command);
+        default:
+            return parse_str_message(command);
     }
-
-    return OP_SUCCESS;
 }
-
-err_code_t parse_rset_message(char *restrict message, void **restrict data) {
-    assert(data = NULL);
-
-    regmatch_t matches[MAX_REGEX_MATCHES];
-
-    if (regexec(&cmd_regexes[RSET], message, MAX_REGEX_MATCHES, matches, 0)) {
-        ERR_REGEX_NO_CRLF;
-    }
-
-    return OP_SUCCESS;
-}
-
-err_code_t parse_noop_message(char *restrict message, void **restrict data) {
-    assert(data = NULL);
-
-    regmatch_t matches[MAX_REGEX_MATCHES];
-
-    if (regexec(&cmd_regexes[NOOP], message, MAX_REGEX_MATCHES, matches, 0)) {
-        ERR_REGEX_NO_CRLF;
-    }
-
-    return OP_SUCCESS;
-}
-
-err_code_t parse_vrfy_message(char *restrict message, void **restrict data) {
-    assert(data = NULL);
-
-    regmatch_t matches[MAX_REGEX_MATCHES];
-
-    if (regexec(&cmd_regexes[VRFY], message, MAX_REGEX_MATCHES, matches, 0)) {
-        ERR_REGEX_NO_CRLF;
-    }
-
-    return OP_SUCCESS;
-}
-
-err_code_t parse_quit_message(char *restrict message, void **restrict data) {
-    assert(data = NULL);
-
-    regmatch_t matches[MAX_REGEX_MATCHES];
-
-    if (regexec(&cmd_regexes[QUIT], message, MAX_REGEX_MATCHES, matches, 0)) {
-        ERR_REGEX_NO_CRLF;
-    }
-
-    return OP_SUCCESS;
-}
-
-static err_code_t (*const parsers[CMD_NUM])(char *restrict, void **restrict) = {
-        parse_helo_message, parse_ehlo_message, parse_mail_message,
-        parse_rcpt_message, parse_data_message, parse_rset_message,
-        parse_noop_message, parse_vrfy_message, parse_quit_message
-};
 
 err_code_t compile_regex(regex_t *regex, const char *restrict pattern, char *restrict error_message) {
     int status = regcomp(regex, pattern, REG_EXTENDED | REG_NEWLINE);
@@ -312,12 +312,12 @@ void compile_regexes(void) {
     int i;
     char error_message[ERROR_MESSAGE_MAX_LENGTH];
 
-    for (i = 0; i < CMD_NUM && compile_regex(&cmd_regexes[i], cmd_regex_patterns[i], error_message) == OP_SUCCESS; i++);
-    if (i < CMD_NUM) {
+    for (i = 0; i < RGX_NUM && compile_regex(&cmd_regexes[i], cmd_regex_patterns[i], error_message) == OP_SUCCESS; i++);
+    if (i < RGX_NUM) {
         exit_with_error_message(ERR_REGEX_COMPILE, error_message);
     }
     const dtor_t cmd_regexes_dtor = {
-            .regex_dtor = {.call = free_regexes, .regexes = cmd_regexes, .cnt = CMD_NUM},
+            .regex_dtor = {.call = free_regexes, .regexes = cmd_regexes, .cnt = RGX_NUM},
             .type = REGEX_DTOR
     };
     add_dtor(&cmd_regexes_dtor);
@@ -348,15 +348,26 @@ err_code_t match_regex(regex_t *regex, const char *to_match, regmatch_t matches[
     return OP_SUCCESS;
 }
 
-err_code_t parse_smtp_message(char *restrict message, command_t *restrict command) {
-    assert(message != NULL && command != NULL);
+err_code_t parse_smtp_message(command_t *restrict command) {
+    assert(command != NULL && command->message != NULL);
 
-    char *cmd_code;
+    size_t message_len = strlen(command->message);
 
-    if ((cmd_code = strtok(message, SP)) == NULL ||
-        cmd_code_to_cmd_event(cmd_code, &command->cmd, &command->event) < 0) {
-        return ERR_SMTP_INVALID_COMMAND;
+    // Parse command code
+    if (message_len < EMPTY_CMD_LENGTH ||
+        cmd_code_to_cmd_event(command->message, &command->cmd, &command->event) < 0) {
+
+        if (command->state == SMTP_SERVER_FSM_ST_DATA) {
+            command->cmd = CMD_DATA_INT;
+            command->event = SMTP_SERVER_FSM_EV_RECV_DATA_INT;
+
+            return parse_message_data(command);
+        } else {
+            return ERR_SMTP_INVALID_COMMAND;
+        }
     }
 
-    return parsers[command->cmd](strtok(NULL, ""), &(command->data));
+    command->message += CMD_CODE_LENGTH;
+
+    return parse_message_data(command);
 }

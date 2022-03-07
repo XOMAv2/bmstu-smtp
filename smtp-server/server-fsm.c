@@ -56,7 +56,7 @@
  */
 typedef te_smtp_server_fsm_state (smtp_server_fsm_callback_t)(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt );
@@ -339,7 +339,7 @@ smtp_server_fsm_invalid_transition( te_smtp_server_fsm_state st, te_smtp_server_
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_accepted(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -352,7 +352,7 @@ smtp_server_fsm_do_accepted(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_close(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -365,7 +365,7 @@ smtp_server_fsm_do_close(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_data(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -378,7 +378,7 @@ smtp_server_fsm_do_data(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_ehlo(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -391,7 +391,7 @@ smtp_server_fsm_do_ehlo(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_helo(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -404,7 +404,7 @@ smtp_server_fsm_do_helo(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_invalid(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -417,7 +417,7 @@ smtp_server_fsm_do_invalid(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_mail(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -430,7 +430,7 @@ smtp_server_fsm_do_mail(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_mail_received(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -443,7 +443,7 @@ smtp_server_fsm_do_mail_received(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_quit(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -456,7 +456,7 @@ smtp_server_fsm_do_quit(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_rcpt(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -469,7 +469,7 @@ smtp_server_fsm_do_rcpt(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_rset(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -482,7 +482,7 @@ smtp_server_fsm_do_rset(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_timeout(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -495,7 +495,7 @@ smtp_server_fsm_do_timeout(
 static te_smtp_server_fsm_state
 smtp_server_fsm_do_vrfy(
     conn_state_t *conn_state,
-    void *data,
+    const void *data,
     te_smtp_server_fsm_state initial,
     te_smtp_server_fsm_state maybe_next,
     te_smtp_server_fsm_event trans_evt)
@@ -515,7 +515,7 @@ smtp_server_fsm_step(
     te_smtp_server_fsm_state smtp_server_fsm_state,
     te_smtp_server_fsm_event trans_evt,
     conn_state_t *conn_state,
-    void *data )
+    const void *data )
 {
     te_smtp_server_fsm_state nxtSt;
     smtp_server_fsm_callback_t * pT;
