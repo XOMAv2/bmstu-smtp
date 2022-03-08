@@ -50,13 +50,14 @@
 #define AUTOFSM_SERVER_FSM_H_GUARD 1
 
 #include "data.h"
+#include "error.h"
 
 /**
  *  Step the FSM.  Returns the resulting state.  If the current state is
  *  SMTP_SERVER_FSM_ST_DONE or SMTP_SERVER_FSM_ST_INVALID, it resets to
  *  SMTP_SERVER_FSM_ST_INIT and returns SMTP_SERVER_FSM_ST_INIT.
  */
-extern te_smtp_server_fsm_state
+extern err_code_t
 smtp_server_fsm_step(command_t *restrict command);
 
 #endif /* AUTOFSM_SERVER_FSM_H_GUARD */

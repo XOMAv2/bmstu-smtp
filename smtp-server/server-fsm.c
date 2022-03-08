@@ -35,9 +35,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #define DEFINE_FSM
-#include "server-fsm.h"
+
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "server-fsm.h"
+#include "defines.h"
 
 /*
  *  Do not make changes to this file, except between the START/END
@@ -442,14 +445,15 @@ smtp_server_fsm_do_vrfy(command_t *restrict command, te_smtp_server_fsm_state ma
  *  SMTP_SERVER_FSM_ST_DONE or SMTP_SERVER_FSM_ST_INVALID, it resets to
  *  SMTP_SERVER_FSM_ST_INIT and returns SMTP_SERVER_FSM_ST_INIT.
  */
-te_smtp_server_fsm_state
+err_code_t
 smtp_server_fsm_step(command_t *restrict command)
 {
     te_smtp_server_fsm_state nxtSt;
     smtp_server_fsm_callback_t * pT;
 
     if ((unsigned)command->conn_state->fsm_state >= SMTP_SERVER_FSM_ST_INVALID) {
-        return SMTP_SERVER_FSM_ST_INIT;
+        command->conn_state->fsm_state = SMTP_SERVER_FSM_ST_INIT;
+        return OP_SUCCESS;
     }
 
 #ifndef __COVERITY__
@@ -465,14 +469,15 @@ smtp_server_fsm_step(command_t *restrict command)
         pT    = ttbl->trans_proc;
     }
 
-    if (pT != NULL)
-        nxtSt = (*pT)( command, nxtSt );
+    if (pT != NULL) {
+        nxtSt = (*pT)(command, nxtSt);
+    }
 
-
+    command->conn_state->fsm_state = nxtSt;
     /* START == FINISH STEP == DO NOT CHANGE THIS COMMENT */
     /* END   == FINISH STEP == DO NOT CHANGE THIS COMMENT */
 
-    return nxtSt;
+    return OP_SUCCESS;
 }
 /*
  * Local Variables:

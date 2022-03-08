@@ -5,7 +5,10 @@
 #ifndef BMSTU_SMTP_DATA_H
 #define BMSTU_SMTP_DATA_H
 
+#include <poll.h>
 #include <stddef.h>
+
+#include "destruction.h"
 
 // Command indices enum for extracting regex parsers.
 typedef enum {
@@ -49,7 +52,11 @@ typedef enum {
     SMTP_SERVER_FSM_EV_INVALID
 } te_smtp_server_fsm_event;
 
+typedef struct pollfd pollfd_t;
+
 typedef struct {
+    pollfd_t pollfd;
+    dtor_id_t dtor_id;
     te_smtp_server_fsm_state fsm_state;
 } conn_state_t;
 
