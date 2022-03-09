@@ -11,4 +11,4 @@ file(GLOB CODE_FILES *.c)
 
 add_executable(smtp_client ${CODE_FILES})
 
-target_link_libraries(smtp_client smtp_common)
+target_link_libraries(smtp_client smtp_common config)

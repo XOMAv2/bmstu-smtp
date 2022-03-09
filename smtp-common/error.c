@@ -1,6 +1,14 @@
 //
 // Created by Karpukhin Aleksandr on 30.01.2022.
 //
+// Wrapper for logger defined "log.h" that allows to
+// log some predefined errors with additional text data.
+// ALso provide additional interface for critical errors
+// processing. Such functions starts with 'exit' prefix and
+// perform exit() call with specified error code and preliminary
+// logging to standard logger. If logger is unavailable,
+// corresponding data will be written to the stderr.
+//
 
 #include "error.h"
 #include <stdio.h>
@@ -10,6 +18,7 @@
 #include <regex.h>
 #include "errno.h"
 
+#include "log.h"
 #include "defines.h"
 #include "destruction.h"
 
@@ -109,7 +118,9 @@ void log_error_raw(err_code_t code, const char *format, va_list* va_args) {
     }
 
     errno = code;
-    fprintf(stderr, "\n%s\n", buf);
+    if (log_error("%s", buf) < 0) {
+        fprintf(stderr, "\n%s\n", buf);
+    }
 }
 
 void log_error_code(err_code_t code) {

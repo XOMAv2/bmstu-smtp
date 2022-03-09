@@ -41,6 +41,7 @@
 
 #include "server-fsm.h"
 #include "defines.h"
+#include "log.h"
 
 /*
  *  Do not make changes to this file, except between the START/END
@@ -330,7 +331,7 @@ smtp_server_fsm_invalid_transition( te_smtp_server_fsm_state st, te_smtp_server_
 {
     /* START == INVALID TRANS MSG == DO NOT CHANGE THIS COMMENT */
     char const *fmt = zSmtp_Server_FsmStrings + Smtp_Server_FsmFsmErr_off;
-    fprintf(stderr, fmt, st, SMTP_SERVER_FSM_STATE_NAME(st), evt, SMTP_SERVER_FSM_EVT_NAME(evt));
+    log_error(fmt, st, SMTP_SERVER_FSM_STATE_NAME(st), evt, SMTP_SERVER_FSM_EVT_NAME(evt));
     /* END   == INVALID TRANS MSG == DO NOT CHANGE THIS COMMENT */
 
     return EXIT_FAILURE;
@@ -340,6 +341,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_accepted(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == ACCEPTED == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_accepted");
     return maybe_next;
 /*  END   == ACCEPTED == DO NOT CHANGE THIS COMMENT  */
 }
@@ -348,6 +350,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_close(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == CLOSE == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_close");
     return maybe_next;
 /*  END   == CLOSE == DO NOT CHANGE THIS COMMENT  */
 }
@@ -356,6 +359,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_data(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == DATA == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_data");
     return maybe_next;
 /*  END   == DATA == DO NOT CHANGE THIS COMMENT  */
 }
@@ -364,6 +368,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_ehlo(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == EHLO == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_ehlo");
     return maybe_next;
 /*  END   == EHLO == DO NOT CHANGE THIS COMMENT  */
 }
@@ -372,6 +377,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_helo(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == HELO == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_helo");
     return maybe_next;
 /*  END   == HELO == DO NOT CHANGE THIS COMMENT  */
 }
@@ -380,6 +386,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_invalid(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == INVALID == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_invalid");
     exit(smtp_server_fsm_invalid_transition(command->conn_state->fsm_state, command->event));
 /*  END   == INVALID == DO NOT CHANGE THIS COMMENT  */
 }
@@ -388,6 +395,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_mail(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == MAIL == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_mail");
     return maybe_next;
 /*  END   == MAIL == DO NOT CHANGE THIS COMMENT  */
 }
@@ -396,6 +404,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_mail_received(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == MAIL RECEIVED == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_mail_received");
     return maybe_next;
 /*  END   == MAIL RECEIVED == DO NOT CHANGE THIS COMMENT  */
 }
@@ -404,6 +413,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_quit(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == QUIT == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_quit");
     return maybe_next;
 /*  END   == QUIT == DO NOT CHANGE THIS COMMENT  */
 }
@@ -412,6 +422,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_rcpt(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == RCPT == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_rcpt");
     return maybe_next;
 /*  END   == RCPT == DO NOT CHANGE THIS COMMENT  */
 }
@@ -420,6 +431,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_rset(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == RSET == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_rset");
     return maybe_next;
 /*  END   == RSET == DO NOT CHANGE THIS COMMENT  */
 }
@@ -428,6 +440,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_timeout(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == TIMEOUT == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_timeout");
     return maybe_next;
 /*  END   == TIMEOUT == DO NOT CHANGE THIS COMMENT  */
 }
@@ -436,6 +449,7 @@ static te_smtp_server_fsm_state
 smtp_server_fsm_do_vrfy(command_t *restrict command, te_smtp_server_fsm_state maybe_next)
 {
 /*  START == VRFY == DO NOT CHANGE THIS COMMENT  */
+    log_debug("smtp_server_fsm_do_vrfy");
     return maybe_next;
 /*  END   == VRFY == DO NOT CHANGE THIS COMMENT  */
 }

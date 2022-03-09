@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <regex.h>
 #include <pthread.h>
 
 #include "config.h"
 #include "error.h"
 #include "defines.h"
+#include "protocol.h"
 
 int rcompile(regex_t *r, const char *regex_text) {
     int status = regcomp(r, regex_text, REG_EXTENDED | REG_NEWLINE);
@@ -92,26 +92,22 @@ int main(int argc, char *argv[]) {
     log_info("domain: %s\n", server_config.domain);
     log_info("maildir: %s\n", server_config.maildir);
 
-    regex_t r;
+    /*regex_t r;
     const char *regex_text = "^ [Tt][Oo]:<(.*:)?(.+)?>( .+=.+)*(\r\n)$";
     const char *find_text = " TO:<reverse.path:> param_1=value_1\r\n";
 
     printf("Trying to find '%s' in '%s'\n", regex_text, find_text);
     rcompile(&r, regex_text);
     match_regex(&r, find_text);
-
-/*    int rc = OP_SUCCESS;
+*/
+    int rc = OP_SUCCESS;
     int server_socket;
 
     if ((rc = server_init(&server_config, &server_socket)) != OP_SUCCESS) {
         exit_with_error_code(rc);
     }
 
-    char err_msg[ERROR_MESSAGE_MAX_LENGTH];
-
-    if ((rc = serve(server_socket, err_msg)) != OP_SUCCESS) {
-        exit_with_error_message(rc, err_msg);
-    }*/
+    serve(server_socket);
 
     pthread_kill(logger_thread, SIGTERM);
 

@@ -7,4 +7,6 @@ file(GLOB CODE_FILES *.c)
 
 add_library(smtp_common STATIC ${CODE_FILES})
 
+target_link_libraries(smtp_common config)
+
 set(${PROJECT_NAME}_INCLUDE_DIRS ${PROJECT_SOURCE_DIR} CACHE INTERNAL "${PROJECT_NAME}: Include Directories" FORCE)

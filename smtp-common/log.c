@@ -233,12 +233,8 @@ int log_message(log_level_te log_level, const char *format, va_list va_args) {
 
         size_t prefix_len = strlen(message);
         vsnprintf(message + prefix_len, QUEUE_MESSAGE_MAX_LENGTH - prefix_len, format, va_args);
-        if (send_log_message(message) < 0) {
-            printf("\ncan't send message %s\n", message);
-        } else {
-            printf("\nmessage %s sent\n", message);
-        }
+        return send_log_message(message);
     }
 
-    return 0;
+    return -1;
 }
