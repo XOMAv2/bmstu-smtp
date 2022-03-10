@@ -26,17 +26,22 @@ void print_to_buf(char *restrict buf, const char *prefix, const char *format, va
     const char *new_prefix = (prefix == NULL ? ERR_NO_ERR_MESSAGE_MESSAGE : prefix);
 
     if (format == NULL) {
-        snprintf(buf, ERROR_MESSAGE_MAX_LENGTH, "%s", new_prefix);
+        snprintf(buf, ERROR_MESSAGE_MAX_LENGTH, "%d %s", errno, new_prefix);
     } else if (va_args == NULL) {
-        snprintf(buf, ERROR_MESSAGE_MAX_LENGTH, "%s: %s", new_prefix, format);
+        snprintf(buf, ERROR_MESSAGE_MAX_LENGTH, "%d %s: %s", errno, new_prefix, format);
     } else {
-        snprintf(buf, ERROR_MESSAGE_MAX_LENGTH, "%s: ", new_prefix);
+        snprintf(buf, ERROR_MESSAGE_MAX_LENGTH, "%d %s: ", errno, new_prefix);
         vsnprintf(buf + strlen(buf), ERROR_MESSAGE_MAX_LENGTH - strlen(buf), format, *va_args);
     }
 }
 
-void log_error_raw(err_code_t code, const char *format, va_list* va_args) {
-    char buf[ERROR_MESSAGE_MAX_LENGTH];
+const char *log_error_raw(err_code_t code, const char *format, va_list* va_args) {
+    char *buf = calloc(ERROR_MESSAGE_MAX_LENGTH, sizeof(char));
+    if (buf == NULL) {
+        exit(ERR_NOT_ALLOCATED);
+    }
+
+    errno = code;
 
     switch (code) {
         case ERR_NOT_ALLOCATED:
@@ -44,9 +49,6 @@ void log_error_raw(err_code_t code, const char *format, va_list* va_args) {
             break;
         case ERR_OUT_OF_RANGE:
             print_to_buf(buf, ERR_OUT_OF_RANGE_MESSAGE, format, va_args);
-            break;
-        case ERR_INVALID_ARGV:
-            print_to_buf(buf, ERR_INVALID_ARGV_MESSAGE, format, va_args);
             break;
         case ERR_NULL_POINTER:
             print_to_buf(buf, ERR_NULL_POINTER_MESSAGE, format, va_args);
@@ -104,12 +106,25 @@ void log_error_raw(err_code_t code, const char *format, va_list* va_args) {
             break;
         case ERR_SOCKET_POLL:
             print_to_buf(buf, ERR_SOCKET_POLL_MESSAGE, format, va_args);
+            break;
         case ERR_SOCKET_POLL_POLLERR:
             print_to_buf(buf, ERR_SOCKET_POLL_POLLERR_MESSAGE, format, va_args);
+            break;
         case ERR_SOCKET_RECV:
             print_to_buf(buf ,ERR_SOCKET_RECV_MESSAGE, format, va_args);
+            break;
         case ERR_SMTP_INVALID_COMMAND:
             print_to_buf(buf, ERR_SMTP_INVALID_COMMAND_MESSAGE, format, va_args);
+            break;
+        case ERR_INVALID_ARGV:
+            print_to_buf(buf, ERR_INVALID_ARGV_MESSAGE, format, va_args);
+            break;
+        case ERR_UNKNOWN_ENUM_VALUE:
+            print_to_buf(buf, ERR_UNKNOWN_ENUM_VALUE_MESSAGE, format, va_args);
+            break;
+        case ERR_SMTP_BAD_SEQ:
+            print_to_buf(buf, ERR_SMTP_BAD_SEQ_MESSAGE, format, va_args);
+            break;
         case ERR_UNKNOWN:
             print_to_buf(buf, ERR_UNKNOWN_MESSAGE, format, va_args);
             break;
@@ -117,10 +132,7 @@ void log_error_raw(err_code_t code, const char *format, va_list* va_args) {
             print_to_buf(buf, format, NULL,  NULL);
     }
 
-    errno = code;
-    if (log_error("%s", buf) < 0) {
-        fprintf(stderr, "\n%s\n", buf);
-    }
+    return buf;
 }
 
 void log_error_code(err_code_t code) {
@@ -130,18 +142,40 @@ void log_error_code(err_code_t code) {
 void log_error_message(err_code_t code, const char *format, ...) {
     va_list va_args;
     va_start(va_args, format);
-    log_error_raw(code, format, &va_args);
+    const char *err_msg = log_error_raw(code, format, &va_args);
+
+    if (log_error("%s", err_msg) < 0) {
+        fprintf(stderr, "\n%s\n", err_msg);
+    }
+
     va_end(va_args);
 }
 
 void exit_with_error_message(err_code_t code, const char *format, ...) {
     va_list va_args;
     va_start(va_args, format);
-    log_error_raw(code, format, &va_args);
-    va_end(va_args);
+    const char *err_msg = log_error_raw(code, format, &va_args);
 
+    if (log_error("%s", err_msg) < 0) {
+        fprintf(stderr, "\n%s\n", err_msg);
+    }
+
+    va_end(va_args);
     exec_all_dtors();
     exit(code);
+}
+
+const char *form_error_message(err_code_t code, const char *format, ...) {
+    va_list va_args;
+    va_start(va_args, format);
+    const char *err_msg = log_error_raw(code, format, &va_args);
+    va_end(va_args);
+
+    return err_msg;
+}
+
+const char *form_error_code(err_code_t code) {
+    return form_error_message(code, NULL);
 }
 
 void exit_with_error_code(err_code_t code) {

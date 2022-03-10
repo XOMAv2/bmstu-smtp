@@ -30,6 +30,7 @@ typedef enum log_level {
 #define MAX_QUEUE_SIZE         16384
 #define MAX_SEND_RETRIES       5
 #define WAIT_BEFORE_RETRY      1000
+#define LOG_LEVELS_NUM         5
 
 typedef enum {
     THREAD,
@@ -54,5 +55,8 @@ int log_debug(const char *format, ...);
 int log_warn(const char *format, ...);
 int log_error(const char *format, ...);
 int log_trace(const char *format, ...);
+
+log_level_te str_to_log_level(const char *restrict str);
+const char *log_level_to_str(log_level_te log_level);
 
 #endif //SMTP_COMMON_LOG_H

@@ -334,7 +334,7 @@ smtp_server_fsm_invalid_transition( te_smtp_server_fsm_state st, te_smtp_server_
     log_error(fmt, st, SMTP_SERVER_FSM_STATE_NAME(st), evt, SMTP_SERVER_FSM_EVT_NAME(evt));
     /* END   == INVALID TRANS MSG == DO NOT CHANGE THIS COMMENT */
 
-    return EXIT_FAILURE;
+    return ERR_SMTP_BAD_SEQ;
 }
 
 static te_smtp_server_fsm_state
@@ -387,7 +387,7 @@ smtp_server_fsm_do_invalid(command_t *restrict command, te_smtp_server_fsm_state
 {
 /*  START == INVALID == DO NOT CHANGE THIS COMMENT  */
     log_debug("smtp_server_fsm_do_invalid");
-    exit(smtp_server_fsm_invalid_transition(command->conn_state->fsm_state, command->event));
+    return smtp_server_fsm_invalid_transition(command->conn_state->fsm_state, command->event);
 /*  END   == INVALID == DO NOT CHANGE THIS COMMENT  */
 }
 
@@ -487,7 +487,12 @@ smtp_server_fsm_step(command_t *restrict command)
         nxtSt = (*pT)(command, nxtSt);
     }
 
+    if (nxtSt == ERR_SMTP_BAD_SEQ) {
+        return ERR_SMTP_BAD_SEQ;
+    }
+
     command->conn_state->fsm_state = nxtSt;
+
     /* START == FINISH STEP == DO NOT CHANGE THIS COMMENT */
     /* END   == FINISH STEP == DO NOT CHANGE THIS COMMENT */
 

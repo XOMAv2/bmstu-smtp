@@ -52,6 +52,12 @@ err_code_t parse_server_config(const config_setting_t *server_settings,
     }
     printf("\nbacklog length loaded\n");
 
+    if (config_setting_lookup_int(server_settings, CONFIG_SERVER_RETRIES, &server_config->retries) != CONFIG_TRUE) {
+        snprintf(error_message, ERROR_MESSAGE_MAX_LENGTH, "can't parse server retries number");
+        return ERR_PARSE_SERVER_CONFIG;
+    }
+    printf("\nretries number loaded\n");
+
     if (config_setting_lookup_string(server_settings, CONFIG_SERVER_DOMAIN, &server_config->domain) != CONFIG_TRUE) {
         snprintf(error_message, ERROR_MESSAGE_MAX_LENGTH, "can't parse server domain");
         return ERR_PARSE_SERVER_CONFIG;
@@ -67,57 +73,38 @@ err_code_t parse_server_config(const config_setting_t *server_settings,
     return OP_SUCCESS;
 }
 
-log_level_te str_to_log_level(const char *str) {
-    if (strcmp(str, "ERROR") == 0) {
-        return ERROR;
-    } else if (strcmp(str, "WARN") == 0) {
-        return WARN;
-    } else if (strcmp(str, "INFO") == 0) {
-        return INFO;
-    } else if (strcmp(str, "DEBUG") == 0) {
-        return DEBUG;
-    } else if (strcmp(str, "TRACE") == 0) {
-        return TRACE;
-    }
-
-    return ERR_UNKNOWN_ENUM_VALUE;
-}
-
 // Parse logger configuration from config instance and store it in logger_state instance.
 err_code_t parse_logger_config(const config_setting_t *logger_settings,
-                               logger_state_t *restrict logger_state,
+                               logger_config_t *restrict logger_config,
                                char *restrict error_message) {
-    const char *buff;
-    if (config_setting_lookup_string(logger_settings, CONFIG_LOGGER_NAME, &buff) !=
+    if (config_setting_lookup_string(logger_settings, CONFIG_LOGGER_NAME, &logger_config->name) !=
         CONFIG_TRUE) {
         snprintf(error_message, ERROR_MESSAGE_MAX_LENGTH, "can't parse logger name");
         return ERR_PARSE_LOGGER_CONFIG;
     }
-    strncpy(logger_state->logger_name, buff, LOGGER_NAME_MAX_LENGTH);
     printf("\nlogger name loaded\n");
 
-    if (config_setting_lookup_string(logger_settings, CONFIG_LOGGER_LOG_DIR, &buff) !=
+    if (config_setting_lookup_string(logger_settings, CONFIG_LOGGER_LOG_DIR, &logger_config->log_dir) !=
         CONFIG_TRUE) {
         snprintf(error_message, ERROR_MESSAGE_MAX_LENGTH, "can't parse logger log_dir");
         return ERR_PARSE_LOGGER_CONFIG;
     }
-    strncpy(logger_state->logs_dir, buff, PATH_MAX_LENGTH);
     printf("\nlogger log dir loaded\n");
 
-    if (config_setting_lookup_string(logger_settings, CONFIG_LOGGER_QUEUE_PATH, &buff) !=
+    if (config_setting_lookup_string(logger_settings, CONFIG_LOGGER_QUEUE_PATH, &logger_config->queue_path) !=
         CONFIG_TRUE) {
         snprintf(error_message, ERROR_MESSAGE_MAX_LENGTH, "can't parse logger queue path");
         return ERR_PARSE_LOGGER_CONFIG;
     }
-    strncpy(logger_state->fd_queue_path, buff, PATH_MAX_LENGTH);
     printf("\nlogger queue path loaded\n");
 
-    if (config_setting_lookup_int(logger_settings, CONFIG_LOGGER_QUEUE_ID, &logger_state->queue_id) != CONFIG_TRUE) {
+    if (config_setting_lookup_int(logger_settings, CONFIG_LOGGER_QUEUE_ID, &logger_config->queue_id) != CONFIG_TRUE) {
         snprintf(error_message, ERROR_MESSAGE_MAX_LENGTH, "can't parse logger queue id");
         return ERR_PARSE_LOGGER_CONFIG;
     }
     printf("\nlogger queue id loaded\n");
 
+    const char *buff;
     if (config_setting_lookup_string(logger_settings, CONFIG_LOGGER_LOG_LEVEL, &buff) != CONFIG_TRUE) {
         snprintf(error_message, ERROR_MESSAGE_MAX_LENGTH, "can't parse logger log level");
         return ERR_PARSE_LOGGER_CONFIG;
@@ -127,7 +114,7 @@ err_code_t parse_logger_config(const config_setting_t *logger_settings,
         snprintf(error_message, ERROR_MESSAGE_MAX_LENGTH, "invalid logger log level value");
         return ERR_PARSE_LOGGER_CONFIG;
     }
-    logger_state->current_log_level = log_level;
+    logger_config->log_level = log_level;
     printf("\nlogger log level loaded\n");
 
     return OP_SUCCESS;
@@ -135,11 +122,11 @@ err_code_t parse_logger_config(const config_setting_t *logger_settings,
 
 // Parse whole application configuration. Config path can be passed through 
 // command line arguments, otherwise default path "../server.cfg" will be used.
-void parse_app_config(server_config_t *restrict server_config,
-                      logger_state_t *restrict logger_state,
-                      int argc,
-                      char *argv[]) {
-    if (server_config == NULL) {
+// Returns config_t instance, that should be destroyed only when server terminates.
+// Do not try to destroy config instance before server termination because it will lead
+// to releasing all allocated resources and unexpected behaviour of all code that uses application configuration.
+config_t parse_app_config(app_config_t * restrict app_config, int argc, char *argv[]) {
+    if (app_config == NULL) {
         exit_with_error_code(ERR_NULL_POINTER);
     }
 
@@ -154,24 +141,65 @@ void parse_app_config(server_config_t *restrict server_config,
 
     const config_setting_t *server_settings = config_lookup(&config, CONFIG_SERVER_SECTION);
     if (server_settings == NULL) {
-        return exit_with_error_message(ERR_PARSE_SERVER_CONFIG, "server section not found");
+        exit_with_error_message(ERR_PARSE_SERVER_CONFIG, "server section not found");
     }
     printf("\nserver config loaded\n");
 
     const config_setting_t *logger_settings = config_lookup(&config, CONFIG_LOGGER_SECTION);
     if (logger_settings == NULL) {
-        return exit_with_error_message(ERR_PARSE_LOGGER_CONFIG, "logger section not found");
+        exit_with_error_message(ERR_PARSE_LOGGER_CONFIG, "logger section not found");
     }
     printf("\nlogger config loaded\n");
 
     char error_message[ERROR_MESSAGE_MAX_LENGTH];
-    if (parse_server_config(server_settings, server_config, error_message) < 0) {
+    if (parse_server_config(server_settings, &app_config->server_config, error_message) < 0) {
         exit_with_error_message(ERR_PARSE_SERVER_CONFIG, error_message);
-    } else if (parse_logger_config(logger_settings, logger_state, error_message) < 0) {
+    } else if (parse_logger_config(logger_settings, &app_config->logger_config, error_message) < 0) {
         exit_with_error_message(ERR_PARSE_LOGGER_CONFIG, error_message);
     }
 
     printf("\napp config parsed\n");
 
-    config_destroy(&config);
+    return config;
+}
+
+void log_app_config(const app_config_t * restrict app_config)
+{
+    if (app_config == NULL) {
+        log_info("app config is undefined");
+    } else {
+        log_server_config(&app_config->server_config);
+        log_logger_config(&app_config->logger_config);
+    }
+}
+
+void log_server_config(const server_config_t * restrict server_config)
+{
+    if (server_config == NULL) {
+        log_info("server config is undefined");
+    } else {
+        log_info("server config:");
+        log_info("host: %s", server_config->host);
+        log_info("port: %d", server_config->port);
+        log_info("user: %s", server_config->user);
+        log_info("group: %s", server_config->group);
+        log_info("domain: %s", server_config->domain);
+        log_info("maildir: %s", server_config->maildir);
+        log_info("backlog: %d", server_config->backlog);
+        log_info("retries: %d", server_config->retries);
+    }
+}
+
+void log_logger_config(const logger_config_t * restrict logger_config)
+{
+    if (logger_config == NULL) {
+        log_info("logger config is undefined");
+    } else {
+        log_info("logger config:");
+        log_info("name: %s", logger_config->name);
+        log_info("log_dir: %s", logger_config->log_dir);
+        log_info("queue_path: %s", logger_config->queue_path);
+        log_info("queue_id: %d", logger_config->queue_id);
+        log_info("log_level: %s", log_level_to_str(logger_config->log_level));
+    }
 }

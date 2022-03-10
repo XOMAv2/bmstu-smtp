@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <regex.h>
 #include <pthread.h>
+#include <assert.h>
 
 #include "config.h"
 #include "error.h"
@@ -62,10 +63,20 @@ static int match_regex(regex_t *r, const char *to_match) {
 }
 
 void *logger(void *data) {
-    logger_state_t *logger_state = (logger_state_t *)data;
-    logger_state->type = THREAD;
+    assert(data);
 
-    if (init_logger(*logger_state) > 0) {
+    logger_config_t *logger_config = (logger_config_t *)data;
+    logger_state_t logger_state = {
+            .current_log_level = logger_config->log_level,
+            .queue_id = logger_config->queue_id,
+            .type = THREAD
+    };
+
+    strncpy(logger_state.logger_name, logger_config->name, LOGGER_NAME_MAX_LENGTH);
+    strncpy(logger_state.logs_dir, logger_config->log_dir, PATH_MAX_LENGTH);
+    strncpy(logger_state.fd_queue_path, logger_config->queue_path, PATH_MAX_LENGTH);
+
+    if (init_logger(logger_state) > 0) {
         start_logger();
     }
 
@@ -73,24 +84,17 @@ void *logger(void *data) {
 }
 
 int main(int argc, char *argv[]) {
-    server_config_t server_config;
-    logger_state_t logger_state;
+    app_config_t app_config;
 
-    parse_app_config(&server_config, &logger_state, argc, argv);
+    config_t config = parse_app_config(&app_config, argc, argv);
 
     pthread_t logger_thread;
 
-    pthread_create(&logger_thread, NULL, logger, (void*)&logger_state);
+    pthread_create(&logger_thread, NULL, logger, (void*)&app_config.logger_config);
 
     sleep(1);
 
-    log_info("server config:\n");
-    log_info("host: %s\n", server_config.host);
-    log_info("port: %d\n", server_config.port);
-    log_info("user: %s\n", server_config.user);
-    log_info("group: %s\n", server_config.group);
-    log_info("domain: %s\n", server_config.domain);
-    log_info("maildir: %s\n", server_config.maildir);
+    log_app_config(&app_config);
 
     /*regex_t r;
     const char *regex_text = "^ [Tt][Oo]:<(.*:)?(.+)?>( .+=.+)*(\r\n)$";
@@ -103,13 +107,14 @@ int main(int argc, char *argv[]) {
     int rc = OP_SUCCESS;
     int server_socket;
 
-    if ((rc = server_init(&server_config, &server_socket)) != OP_SUCCESS) {
+    if ((rc = server_init(&app_config.server_config, &server_socket)) != OP_SUCCESS) {
         exit_with_error_code(rc);
     }
 
     serve(server_socket);
 
     pthread_kill(logger_thread, SIGTERM);
+    config_destroy(&config);
 
     exit(0);
 }

@@ -210,26 +210,7 @@ int send_log_message(const char *message) {
 int log_message(log_level_te log_level, const char *format, va_list va_args) {
     if (log_level <= logger_state.current_log_level) {
         char message[QUEUE_MESSAGE_MAX_LENGTH];
-
-        switch (log_level) {
-            case ERROR:
-                snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s ERROR ", logger_state.logger_name);
-                break;
-            case WARN:
-                snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s WARN ", logger_state.logger_name);
-                break;
-            case INFO:
-                snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s INFO ", logger_state.logger_name);
-                break;
-            case DEBUG:
-                snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s DEBUG ", logger_state.logger_name);
-                break;
-            case TRACE:
-                snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s TRACE ", logger_state.logger_name);
-                break;
-            default:
-                abort();
-        }
+        snprintf(message, QUEUE_MESSAGE_MAX_LENGTH, "%s %s ", log_level_to_str(log_level), logger_state.logger_name);
 
         size_t prefix_len = strlen(message);
         vsnprintf(message + prefix_len, QUEUE_MESSAGE_MAX_LENGTH - prefix_len, format, va_args);
@@ -237,4 +218,29 @@ int log_message(log_level_te log_level, const char *format, va_list va_args) {
     }
 
     return -1;
+}
+
+log_level_te str_to_log_level(const char *restrict str) {
+    if (strcmp(str, "ERROR") == 0) {
+        return ERROR;
+    } else if (strcmp(str, "WARN") == 0) {
+        return WARN;
+    } else if (strcmp(str, "INFO") == 0) {
+        return INFO;
+    } else if (strcmp(str, "DEBUG") == 0) {
+        return DEBUG;
+    } else if (strcmp(str, "TRACE") == 0) {
+        return TRACE;
+    }
+
+    return -1;
+}
+
+static const char *log_levels[LOG_LEVELS_NUM] = {
+        "ERROR", "WARN", "INFO",
+        "DEBUG", "TRACE"
+};
+
+const char *log_level_to_str(log_level_te log_level) {
+    return (log_level < LOG_LEVELS_NUM) ? log_levels[log_level] : NULL;
 }

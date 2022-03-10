@@ -54,10 +54,20 @@ typedef enum {
 
 typedef struct pollfd pollfd_t;
 
+// Describe client connection state and used in FSM processing.
 typedef struct {
-    pollfd_t pollfd;
+    // Connection destructor id that can be used to call it from destructor pool
+    // in case when it will be necessary to destroy connection (it was closed
+    // by the client side or too many errors were occurred during reading from connection).
     dtor_id_t dtor_id;
+    // Current finite state machine state. Used to select FSM handler.
     te_smtp_server_fsm_state fsm_state;
+    // Number of repeated operations that failed with error.
+    // When this number exceed some predefined value, connection will be destroyed.
+    // Number of retries in case of errors is specified in server configuration.
+    // If this number is negative, server will retry any operation infinitely
+    // until the connection is explicitly closed by the client or until the server stops.
+    int retries;
 } conn_state_t;
 
 // Client command data structure each received client message is wrapped in.
@@ -71,6 +81,9 @@ typedef struct {
     // Message received from connection socket.
     // Set at the beginning of parsing stage and may be changed during parsing stage.
     char *restrict message;
+
+    // Socket file descriptor number associated with connection.
+    int sock_fd;
 
     // Current connection state in which command was received.
     // Set at the creation and may be changed at the FSM processing stage.

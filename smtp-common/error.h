@@ -35,6 +35,7 @@
 #define ERR_SOCKET_POLL               -304
 #define ERR_SOCKET_POLL_POLLERR       -305
 #define ERR_SOCKET_RECV               -306
+#define ERR_SOCKET_SEND               -307
 
 // SMTP errors
 #define ERR_SMTP_INVALID_COMMAND      -400
@@ -45,6 +46,8 @@
 #define ERR_UNKNOWN_ENUM_VALUE        -502
 
 #define ERR_UNKNOWN                   -600
+
+#define ERR_SMTP_BAD_SEQ               503
 
 #define ERR_NOT_ALLOCATED_MESSAGE               "error during memory (re)allocation"
 #define ERR_OUT_OF_RANGE_MESSAGE                "going beyond the memory area bound during indexing"
@@ -71,6 +74,7 @@
 #define ERR_SOCKET_POLL_MESSAGE                 "error during poll call on client sockets"
 #define ERR_SOCKET_POLL_POLLERR_MESSAGE         "poll call set POLLERR in revents"
 #define ERR_SOCKET_RECV_MESSAGE                 "error while reading message from client socket"
+#define ERR_SOCKET_SEND_MESSAGE                 "error while sending message to socket"
 
 #define ERR_SMTP_INVALID_COMMAND_MESSAGE        "invalid smtp command code received"
 
@@ -80,6 +84,8 @@
 
 #define ERR_UNKNOWN_MESSAGE                     "unknown error code received"
 
+#define ERR_SMTP_BAD_SEQ_MESSAGE                "Bad sequence of commands"
+
 typedef int err_code_t;
 
 void log_error_code(err_code_t code);
@@ -88,5 +94,8 @@ void log_error_message(err_code_t code, const char *format, ...);
 void exit_with_error_code(err_code_t code);
 void exit_with_error_message(err_code_t code, const char *format, ...);
 void exit_with_config_error(err_code_t err_code, const config_t *config, const char * filename);
+
+const char *form_error_code(err_code_t code);
+const char *form_error_message(err_code_t code, const char *format, ...);
 
 #endif //LAB01_ERROR_H

@@ -16,14 +16,20 @@
 typedef struct sockaddr sockaddr_t;
 typedef struct sockaddr_in sockaddr_in_t;
 
+// Describe client connection state. Exists single instance per connection.
 typedef struct {
-    conn_state_t *pool;
+    // Pollfd structs pool using for poll() calls.
+    pollfd_t *fd_pool;
+    // States pool using for states servicing.
+    conn_state_t *state_pool;
+    // Current number of connections in pool.
     size_t size;
+    // Current pool capacity i.e. allocated memory size.
     size_t capacity;
 } conn_pool_t;
 
 // Serve new external event on specified connection and return new connection state
-void serve_conn_event(conn_state_t *restrict conn_state);
+void serve_conn_event(const pollfd_t *restrict pollfd, conn_state_t *restrict conn_state);
 
 // Create new server socket, bind with address specified in server config and listen for incoming client connections
 err_code_t server_init(const server_config_t *server_config, int *restrict server_socket);
